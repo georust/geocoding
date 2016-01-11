@@ -4,5 +4,5 @@ name = "geocoding"
 description = "Geocoding library for Rust"
 version = "0.0.1"
 authors = ["Blake Grotewold <hello@grotewold.me>"]
-license = "Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/georust/rust-geocoding"
