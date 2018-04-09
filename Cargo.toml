@@ -1,7 +1,7 @@
 [package]
 name = "geocoding"
 description = "Geocoding library for Rust"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Stephan Hügel <urschrei@gmail.com>", "Blake Grotewold <hello@grotewold.me>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/georust/rust-geocoding"
@@ -9,6 +9,7 @@ keywords = ["gecoding", "geo", "gis", "geospatial"]
 readme = "README.md"
 
 [dependencies]
+geo = "0.7.4"
 num-traits = "0.2"
 serde = "1.0"
 serde_derive = "1.0"
