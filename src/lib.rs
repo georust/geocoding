@@ -33,29 +33,28 @@ pub use opencage::Opencage;
 
 /// Reverse-geocode a coordinate.
 ///
-/// This trait represents the most simple and minimal implementation of
-/// functionality available from a given geocoding provider: an address formatted as a String.
-///
-/// Note that individual providers may specify coordinate order, which will vary between
-/// implementations.
+/// This trait represents the most simple and minimal implementation
+/// available from a given geocoding provider: an address formatted as a String.
 pub trait Reverse<T>
 where
     T: Float,
 {
+    // NOTE TO IMPLEMENTERS: Point coordinates are lon, lat (x, y)
+    // You may have to provide these coordinates in reverse order,
+    // depending on the provider's requirements (see e.g. OpenCage)
     fn reverse(&self, point: &Point<T>) -> reqwest::Result<String>;
 }
 
 /// Forward-geocode a coordinate.
 ///
 /// This trait represents the most simple and minimal implementation available
-/// from a given geocoding provider; for reverse lookups. It returns a `Vec` of `Points`.
-///
-/// Note that individual providers may specify coordinate order, which will vary between
-/// implementations.
+/// from a given geocoding provider: It returns a `Vec` of zero or more `Points`.
 pub trait Forward<T>
 where
     T: Float,
-{
+{   // NOTE TO IMPLEMENTERS: while returned provider point data may not be in
+    // lon, lat (x, y) order, Geocoding requires this order in its output Point
+    // data. Please pay attention when using returned data to construct Points
     fn forward(&self, address: &str) -> reqwest::Result<Vec<Point<T>>>;
 }
 
