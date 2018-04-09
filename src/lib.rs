@@ -7,8 +7,9 @@
 //! Individual providers may implement additional methods, which return more
 //! finely-structured and/or extensive data, and enable more specific query tuning.
 //! ### A note on Coordinate Order
-//! While individual providers may specify coordinates in `lon, lat` or `lat, lon` order,
-//! `Geocoding` **always** specifies `Point` data in `lon, lat` order,
+//! While individual providers may specify coordinates in either `[Longitude, Latitude]` **or**
+//! `[Latitude, Longitude`] order,
+//! `Geocoding` **always** requires `Point` data in `[Longitude, Latitude] (`x, y`) order,
 //! and returns data in that order.
 
 extern crate geo;

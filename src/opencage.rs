@@ -2,11 +2,11 @@
 //!
 //! Please see the [API documentation](https://geocoder.opencagedata.com/api) for details.
 //! Note that rate limits apply to the free tier, and that the default `forward` and `reverse` methods
-//! Do not return rate-limit data.
-//!
-//! **NOTE**: this provider's documentation shows all point coordinates in `[Latitude, Longitude]` order.
-//! However, `Geocoding` requires input `Point` coordinate order as `[Longitude, Latitude]`, and returns coordinates
-//! with that order.
+//! do not return rate-limit data.
+//! ### A Note on Coordinate Order
+//! This provider's documentation shows all coordinates in `[Latitude, Longitude]` order.
+//! However, `Geocoding` requires input `Point` coordinate order as `[Longitude, Latitude]`
+//! `(x, y)`, and returns coordinates with that order.
 
 use super::num_traits::Float;
 use std::collections::HashMap;
