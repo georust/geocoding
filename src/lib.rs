@@ -3,9 +3,14 @@
 //! of the `Forward` and `Reverse` traits, which provide forward– and reverse-geocoding methods.
 //!
 //! Note that for the `reverse` method, the return type is simply `String`,
-//! As this is the lowest common denominator reverse-geocoding result. Individual providers
-//! may implement additional methods, which return more finely-structured and/or
-//! extensive data, and enable more specific query tuning.
+//! As this is the lowest common denominator reverse-geocoding result.
+//! Individual providers may implement additional methods, which return more
+//! finely-structured and/or extensive data, and enable more specific query tuning.
+//! ### A note on Coordinate Order
+//! While individual providers may specify coordinates in `lon, lat` or `lat, lon` order,
+//! `Geocoding` **always** specifies `Point` data in `lon, lat` order,
+//! and returns data in that order.
+
 extern crate geo;
 use geo::{Point};
 

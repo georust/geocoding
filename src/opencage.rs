@@ -4,7 +4,9 @@
 //! Note that rate limits apply to the free tier, and that the default `forward` and `reverse` methods
 //! Do not return rate-limit data.
 //!
-//! **NOTE**: this provider accepts and returns coordinates in **`[Longitude, Latitude]`** order
+//! **NOTE**: this provider's documentation shows all point coordinates in `[Latitude, Longitude]` order.
+//! However, `Geocoding` requires input `Point` coordinate order as `[Longitude, Latitude]`, and returns coordinates
+//! with that order.
 
 use super::num_traits::Float;
 use std::collections::HashMap;
@@ -52,8 +54,9 @@ where
                     &"q",
                     &format!(
                         "{}, {}",
-                        (&point.x().to_f64().unwrap().to_string()),
-                        &point.y().to_f64().unwrap().to_string()
+                        // OpenCage expects lat, lon order
+                        (&point.y().to_f64().unwrap().to_string()),
+                        &point.x().to_f64().unwrap().to_string()
                     ),
                 ),
                 (&"key", &self.api_key),
@@ -92,8 +95,8 @@ where
             .iter()
             .map(|res| {
                 Point::new(
-                    *res.geometry.get("lat").unwrap(),
                     *res.geometry.get("lng").unwrap(),
+                    *res.geometry.get("lat").unwrap(),
                 )
             })
             .collect())
@@ -350,7 +353,7 @@ mod test {
     #[test]
     fn reverse_test() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
-        let p = Point::new(41.40139, 2.12870);
+        let p = Point::new(2.12870, 41.40139);
         let res = oc.reverse(&p);
         assert_eq!(
             res.unwrap(),
@@ -365,8 +368,8 @@ mod test {
         assert_eq!(
             res.unwrap(),
             vec![
-                Point::new(48.1599218, 11.5761796),
-                Point::new(48.1608265, 11.57583),
+                Point::new(11.5761796, 48.1599218),
+                Point::new(11.57583, 48.1608265),
             ]
         );
     }
