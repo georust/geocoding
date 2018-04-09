@@ -9,7 +9,7 @@
 //! ### A note on Coordinate Order
 //! While individual providers may specify coordinates in either `[Longitude, Latitude]` **or**
 //! `[Latitude, Longitude`] order,
-//! `Geocoding` **always** requires `Point` data in `[Longitude, Latitude] (`x, y`) order,
+//! `Geocoding` **always** requires `Point` data in `[Longitude, Latitude]` (`x, y`) order,
 //! and returns data in that order.
 
 extern crate geo;
