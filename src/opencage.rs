@@ -4,7 +4,7 @@
 //! Note that rate limits apply to the free tier; the remaining daily quota can be retrieved
 //! Using the [`remaining_calls()`](struct.Opencage.html#method.remaining_calls) method.
 //! ### A Note on Coordinate Order
-//! This provider's documentation shows all coordinates in `[Latitude, Longitude]` order.
+//! This provider's API documentation shows all coordinates in `[Latitude, Longitude]` order.
 //! However, `Geocoding` requires input `Point` coordinate order as `[Longitude, Latitude]`
 //! `(x, y)`, and returns coordinates with that order.
 use std::cell::Cell;
@@ -35,8 +35,8 @@ impl Opencage {
     pub fn new(api_key: String) -> Self {
         let client = Client::builder().build().expect("Couldn't build a client!");
         Opencage {
-            api_key: api_key,
-            client: client,
+            api_key,
+            client,
             endpoint: "https://api.opencagedata.com/geocode/v1/json".to_string(),
             remaining: Cell::new(None),
         }
@@ -112,8 +112,8 @@ where
             .iter()
             .map(|res| {
                 Point::new(
-                    *res.geometry.get("lng").unwrap(),
-                    *res.geometry.get("lat").unwrap(),
+                    res.geometry["lng"],
+                    res.geometry["lat"],
                 )
             })
             .collect())
