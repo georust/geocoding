@@ -1,12 +1,13 @@
 //! The [OpenCage Geocoding](https://geocoder.opencagedata.com/) provider.
 //!
 //! Please see the [API documentation](https://geocoder.opencagedata.com/api) for details.
-//! Note that rate limits apply to the free tier, and that the default `forward` and `reverse` methods
-//! do not return rate-limit data.
+//! Note that rate limits apply to the free tier; the remaining daily quota can be retrieved
+//! Using the [`remaining_calls()`](struct.Opencage.html#method.remaining_calls) method.
 //! ### A Note on Coordinate Order
 //! This provider's documentation shows all coordinates in `[Latitude, Longitude]` order.
 //! However, `Geocoding` requires input `Point` coordinate order as `[Longitude, Latitude]`
 //! `(x, y)`, and returns coordinates with that order.
+use std::cell::Cell;
 
 use super::num_traits::Float;
 use std::collections::HashMap;
@@ -18,11 +19,15 @@ use super::reqwest;
 use super::Point;
 use super::{Forward, Reverse};
 
+// OpenCage has a custom rate-limit header, indicating remaining calls
+header! { (XRatelimitRemaining, "X-RateLimit-Remaining") => [i32] }
+
 /// An instance of the Opencage Geocoding service
 pub struct Opencage {
     api_key: String,
     client: Client,
     endpoint: String,
+    remaining: Cell<Option<i32>>,
 }
 
 impl Opencage {
@@ -33,7 +38,15 @@ impl Opencage {
             api_key: api_key,
             client: client,
             endpoint: "https://api.opencagedata.com/geocode/v1/json".to_string(),
+            remaining: Cell::new(None),
         }
+    }
+    /// Retrieve the remaining API calls in your daily quota
+    ///
+    /// Initially, this value is `None`. Any OpenCage API call will update this
+    /// value to reflect the remaining quota for the API key.
+    pub fn remaining_calls(&self) -> Option<i32> {
+        self.remaining.get()
     }
 }
 
@@ -47,7 +60,7 @@ where
     ///
     /// This method passes the `no_annotations` and `no_record` parameters to the API.
     fn reverse(&self, point: &Point<T>) -> reqwest::Result<String> {
-        let res: OpencageResponse<T> = self.client
+        let mut resp = self.client
             .get(&self.endpoint)
             .query(&[
                 (
@@ -63,11 +76,13 @@ where
                 (&"no_annotations", &String::from("1")),
                 (&"no_record", &String::from("1")),
             ])
-            .send()?
-            .json()?;
+            .send()?;
+        let res: OpencageResponse<T> = resp.json()?;
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
-        let flibble = &res.results[0];
-        Ok(flibble.formatted.to_string())
+        let address = &res.results[0];
+        let headers = resp.headers().get::<XRatelimitRemaining>().unwrap();
+        self.remaining.set(Some(**headers));
+        Ok(address.formatted.to_string())
     }
 }
 
@@ -81,7 +96,7 @@ where
     ///
     /// This method passes the `no_annotations` and `no_record` parameters to the API.
     fn forward(&self, place: &str) -> reqwest::Result<Vec<Point<T>>> {
-        let res: OpencageResponse<T> = self.client
+        let mut resp = self.client
             .get(&self.endpoint)
             .query(&[
                 (&"q", place),
@@ -89,8 +104,10 @@ where
                 (&"no_annotations", &String::from("1")),
                 (&"no_record", &String::from("1")),
             ])
-            .send()?
-            .json()?;
+            .send()?;
+        let res: OpencageResponse<T> = resp.json()?;
+        let headers = resp.headers().get::<XRatelimitRemaining>().unwrap();
+        self.remaining.set(Some(**headers));
         Ok(res.results
             .iter()
             .map(|res| {

@@ -14,10 +14,10 @@
 //!
 
 extern crate geo;
-pub use geo::{Point};
+pub use geo::Point;
 
 extern crate num_traits;
-use num_traits::{Float};
+use num_traits::Float;
 
 #[macro_use]
 extern crate serde_derive;
@@ -27,6 +27,9 @@ use serde::Deserialize;
 
 extern crate reqwest;
 use reqwest::Client;
+
+#[macro_use]
+extern crate hyper;
 
 // The OpenCage geocoding provider
 pub mod opencage;
@@ -87,9 +90,9 @@ where
 pub trait Forward<T>
 where
     T: Float,
-{   // NOTE TO IMPLEMENTERS: while returned provider point data may not be in
+{
+    // NOTE TO IMPLEMENTERS: while returned provider point data may not be in
     // lon, lat (x, y) order, Geocoding requires this order in its output Point
     // data. Please pay attention when using returned data to construct Points
     fn forward(&self, address: &str) -> reqwest::Result<Vec<Point<T>>>;
 }
-
