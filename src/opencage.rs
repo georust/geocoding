@@ -10,13 +10,14 @@
 //!
 //! ### Example
 //!
-//!     extern crate geocoding;
-//!     use geocoding::{Opencage, Point, Reverse};
+//! ```
+//! use geocoding::{Opencage, Point, Reverse};
 //!
-//!     let oc = Opencage::new("my_api_key".to_string());
-//!     let p = Point::new(2.12870, 41.40139);
-//!     let res = oc.reverse(&p);
-//!     println!("{:?}", res.unwrap());
+//! let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+//! let p = Point::new(2.12870, 41.40139);
+//! let res = oc.reverse(&p);
+//! println!("{:?}", res.unwrap());
+//! ```
 use std::cell::Cell;
 
 use super::num_traits::Float;
