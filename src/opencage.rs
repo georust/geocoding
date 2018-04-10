@@ -99,7 +99,6 @@ where
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
         let address = &res.results[0];
         let headers = resp.headers().get::<XRatelimitRemaining>().unwrap();
-        // *self.remaining.lock().unwrap(Some(**headers));
         let mut lock = self.remaining.try_lock();
         if let Ok(ref mut mutex) = lock {
             **mutex = Some(**headers)
