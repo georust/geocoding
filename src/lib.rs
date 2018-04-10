@@ -11,9 +11,10 @@
 //! `[Latitude, Longitude`] order,
 //! `Geocoding` **always** requires `Point` data in `[Longitude, Latitude]` (`x, y`) order,
 //! and returns data in that order.
+//!
 
 extern crate geo;
-use geo::{Point};
+pub use geo::{Point};
 
 extern crate num_traits;
 use num_traits::{Float};
@@ -35,6 +36,21 @@ pub use opencage::Opencage;
 ///
 /// This trait represents the most simple and minimal implementation
 /// available from a given geocoding provider: an address formatted as a String.
+///
+/// Examples
+///
+/// ```
+/// use geocoding::Point;
+/// use geocoding::Reverse;
+/// use geocoding::Opencage;
+/// let p = Point::new(2.12870, 41.40139);
+/// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+/// let res = oc.reverse(&p);
+/// assert_eq!(
+///     res.unwrap(),
+///     "Carrer de Calatrava, 68, 08017 Barcelona, Spain"
+/// );
+/// ```
 pub trait Reverse<T>
 where
     T: Float,
@@ -49,6 +65,25 @@ where
 ///
 /// This trait represents the most simple and minimal implementation available
 /// from a given geocoding provider: It returns a `Vec` of zero or more `Points`.
+///
+/// Examples
+///
+/// ```
+/// use geocoding::Point;
+/// use geocoding::Forward;
+/// use geocoding::Opencage;
+/// let p = Point::new(2.12870, 41.40139);
+/// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+/// let address = "Schwabing, München";
+/// let res = oc.forward(&address);
+/// assert_eq!(
+///     res.unwrap(),
+///     vec![
+///         Point::new(11.5761796, 48.1599218),
+///         Point::new(11.57583, 48.1608265),
+///     ]
+/// );
+/// ```
 pub trait Forward<T>
 where
     T: Float,
