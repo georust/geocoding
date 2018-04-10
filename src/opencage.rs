@@ -23,9 +23,10 @@ use std::sync::{Arc, Mutex};
 use super::num_traits::Float;
 use std::collections::HashMap;
 
-use super::Client;
 use super::Deserialize;
+use super::UA_STRING;
 use super::reqwest;
+use super::{header, Client};
 
 use super::Point;
 use super::{Forward, Reverse};
@@ -44,7 +45,12 @@ pub struct Opencage {
 impl Opencage {
     /// Create a new OpenCage geocoding instance
     pub fn new(api_key: String) -> Self {
-        let client = Client::builder().build().expect("Couldn't build a client!");
+        let mut headers = header::Headers::new();
+        headers.set(header::UserAgent::new(UA_STRING));
+        let client = Client::builder()
+            .default_headers(headers)
+            .build()
+            .expect("Couldn't build a client!");
         Opencage {
             api_key,
             client,

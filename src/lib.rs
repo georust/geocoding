@@ -12,7 +12,7 @@
 //! `Geocoding` **always** requires `Point` data in `[Longitude, Latitude]` (`x, y`) order,
 //! and returns data in that order.
 //!
-
+static UA_STRING: &'static str = "Rust-Geocoding";
 extern crate geo;
 pub use geo::Point;
 
@@ -26,7 +26,7 @@ extern crate serde;
 use serde::Deserialize;
 
 extern crate reqwest;
-use reqwest::Client;
+use reqwest::{header, Client};
 
 #[macro_use]
 extern crate hyper;
