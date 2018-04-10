@@ -99,10 +99,11 @@ where
         let res: OpencageResponse<T> = resp.json()?;
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
         let address = &res.results[0];
-        let headers = resp.headers().get::<XRatelimitRemaining>().unwrap();
-        let mut lock = self.remaining.try_lock();
-        if let Ok(ref mut mutex) = lock {
-            **mutex = Some(**headers)
+        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+            let mut lock = self.remaining.try_lock();
+            if let Ok(ref mut mutex) = lock {
+                **mutex = Some(**headers)
+            }
         }
         Ok(address.formatted.to_string())
     }
@@ -135,7 +136,6 @@ where
                 **mutex = Some(**headers)
             }
         }
-        // let headers = resp.headers().get::<XRatelimitRemaining>().unwrap();
         Ok(res.results
             .iter()
             .map(|res| Point::new(res.geometry["lng"], res.geometry["lat"]))
