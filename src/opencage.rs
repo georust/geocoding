@@ -7,6 +7,16 @@
 //! This provider's API documentation shows all coordinates in `[Latitude, Longitude]` order.
 //! However, `Geocoding` requires input `Point` coordinate order as `[Longitude, Latitude]`
 //! `(x, y)`, and returns coordinates with that order.
+//!
+//! ### Example
+//!
+//!     extern crate geocoding;
+//!     use geocoding::{Opencage, Point, Reverse};
+//!
+//!     let oc = Opencage::new("my_api_key".to_string());
+//!     let p = Point::new(2.12870, 41.40139);
+//!     let res = oc.reverse(&p);
+//!     println!("{:?}", res.unwrap());
 use std::cell::Cell;
 
 use super::num_traits::Float;
@@ -44,7 +54,7 @@ impl Opencage {
     /// Retrieve the remaining API calls in your daily quota
     ///
     /// Initially, this value is `None`. Any OpenCage API call will update this
-    /// value to reflect the remaining quota for the API key.
+    /// value to reflect the remaining quota for the API key. See the [API docs](https://geocoder.opencagedata.com/api#rate-limiting) for details.
     pub fn remaining_calls(&self) -> Option<i32> {
         self.remaining.get()
     }
@@ -110,12 +120,7 @@ where
         self.remaining.set(Some(**headers));
         Ok(res.results
             .iter()
-            .map(|res| {
-                Point::new(
-                    res.geometry["lng"],
-                    res.geometry["lat"],
-                )
-            })
+            .map(|res| Point::new(res.geometry["lng"], res.geometry["lat"]))
             .collect())
     }
 }
