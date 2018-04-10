@@ -18,7 +18,7 @@
 //! let res = oc.reverse(&p);
 //! println!("{:?}", res.unwrap());
 //! ```
-use std::cell::Cell;
+use std::sync::{Arc, Mutex};
 
 use super::num_traits::Float;
 use std::collections::HashMap;
@@ -38,7 +38,7 @@ pub struct Opencage {
     api_key: String,
     client: Client,
     endpoint: String,
-    remaining: Cell<Option<i32>>,
+    remaining: Arc<Mutex<Option<i32>>>,
 }
 
 impl Opencage {
@@ -49,7 +49,7 @@ impl Opencage {
             api_key,
             client,
             endpoint: "https://api.opencagedata.com/geocode/v1/json".to_string(),
-            remaining: Cell::new(None),
+            remaining: Arc::new(Mutex::new(None)),
         }
     }
     /// Retrieve the remaining API calls in your daily quota
@@ -57,7 +57,7 @@ impl Opencage {
     /// Initially, this value is `None`. Any OpenCage API call will update this
     /// value to reflect the remaining quota for the API key. See the [API docs](https://geocoder.opencagedata.com/api#rate-limiting) for details.
     pub fn remaining_calls(&self) -> Option<i32> {
-        self.remaining.get()
+        *self.remaining.lock().unwrap()
     }
 }
 
@@ -93,7 +93,11 @@ where
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
         let address = &res.results[0];
         let headers = resp.headers().get::<XRatelimitRemaining>().unwrap();
-        self.remaining.set(Some(**headers));
+        // *self.remaining.lock().unwrap(Some(**headers));
+        let mut lock = self.remaining.try_lock();
+        if let Ok(ref mut mutex) = lock {
+            **mutex = Some(**headers)
+        }
         Ok(address.formatted.to_string())
     }
 }
@@ -120,7 +124,10 @@ where
             .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
         let headers = resp.headers().get::<XRatelimitRemaining>().unwrap();
-        self.remaining.set(Some(**headers));
+        let mut lock = self.remaining.try_lock();
+        if let Ok(ref mut mutex) = lock {
+            **mutex = Some(**headers)
+        }
         Ok(res.results
             .iter()
             .map(|res| Point::new(res.geometry["lng"], res.geometry["lat"]))
