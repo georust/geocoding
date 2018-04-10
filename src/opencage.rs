@@ -86,7 +86,8 @@ where
                 (&"no_annotations", &String::from("1")),
                 (&"no_record", &String::from("1")),
             ])
-            .send()?;
+            .send()?
+            .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
         let address = &res.results[0];
@@ -114,7 +115,8 @@ where
                 (&"no_annotations", &String::from("1")),
                 (&"no_record", &String::from("1")),
             ])
-            .send()?;
+            .send()?
+            .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
         let headers = resp.headers().get::<XRatelimitRemaining>().unwrap();
         self.remaining.set(Some(**headers));
