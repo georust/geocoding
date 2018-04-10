@@ -2,7 +2,8 @@
 //!
 //! Please see the [API documentation](https://geocoder.opencagedata.com/api) for details.
 //! Note that rate limits apply to the free tier; the remaining daily quota can be retrieved
-//! Using the [`remaining_calls()`](struct.Opencage.html#method.remaining_calls) method.
+//! Using the [`remaining_calls()`](struct.Opencage.html#method.remaining_calls) method. If you
+//! are a paid tier user, this value will not be updated, and will remain `None`.
 //! ### A Note on Coordinate Order
 //! This provider's API documentation shows all coordinates in `[Latitude, Longitude]` order.
 //! However, `Geocoding` requires input `Point` coordinate order as `[Longitude, Latitude]`
@@ -128,11 +129,13 @@ where
             .send()?
             .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
-        let headers = resp.headers().get::<XRatelimitRemaining>().unwrap();
-        let mut lock = self.remaining.try_lock();
-        if let Ok(ref mut mutex) = lock {
-            **mutex = Some(**headers)
+        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+            let mut lock = self.remaining.try_lock();
+            if let Ok(ref mut mutex) = lock {
+                **mutex = Some(**headers)
+            }
         }
+        // let headers = resp.headers().get::<XRatelimitRemaining>().unwrap();
         Ok(res.results
             .iter()
             .map(|res| Point::new(res.geometry["lng"], res.geometry["lat"]))
@@ -280,7 +283,7 @@ where
 {
     pub documentation: String,
     pub licenses: Vec<HashMap<String, String>>,
-    pub rate: HashMap<String, i32>,
+    pub rate: Option<HashMap<String, i32>>,
     pub results: Vec<Results<T>>,
     pub status: Status,
     pub stay_informed: HashMap<String, String>,
