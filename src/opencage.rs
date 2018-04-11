@@ -1,7 +1,9 @@
 //! The [OpenCage Geocoding](https://geocoder.opencagedata.com/) provider.
 //!
 //! Please see the [API documentation](https://geocoder.opencagedata.com/api) for details.
-//! Note that rate limits apply to the free tier; the remaining daily quota can be retrieved
+//! Note that rate limits apply to the free tier:
+//! there is a [rate-limit](https://geocoder.opencagedata.com/api#rate-limiting) of 1 request per second,
+//! and a quota of calls allowed per 24-hour period. The remaining daily quota can be retrieved
 //! Using the [`remaining_calls()`](struct.Opencage.html#method.remaining_calls) method. If you
 //! are a paid tier user, this value will not be updated, and will remain `None`.
 //! ### A Note on Coordinate Order
@@ -61,8 +63,9 @@ impl Opencage {
     }
     /// Retrieve the remaining API calls in your daily quota
     ///
-    /// Initially, this value is `None`. Any OpenCage API call will update this
-    /// value to reflect the remaining quota for the API key. See the [API docs](https://geocoder.opencagedata.com/api#rate-limiting) for details.
+    /// Initially, this value is `None`. Any OpenCage API call using a "Free Tier" key
+    /// will update this value to reflect the remaining quota for the API key.
+    /// See the [API docs](https://geocoder.opencagedata.com/api#rate-limiting) for details.
     pub fn remaining_calls(&self) -> Option<i32> {
         *self.remaining.lock().unwrap()
     }
