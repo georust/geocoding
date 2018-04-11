@@ -69,6 +69,84 @@ impl Opencage {
     pub fn remaining_calls(&self) -> Option<i32> {
         *self.remaining.lock().unwrap()
     }
+    /// A reverse lookup of a point.
+    ///
+    /// This method passes the `no_record` parameter to the API.
+    pub fn reverse_full<T>(&self, point: &Point<T>) -> reqwest::Result<OpencageResponse<T>>
+    where
+        T: Float,
+        for<'de> T: Deserialize<'de>,
+    {
+        let mut resp = self.client
+            .get(&self.endpoint)
+            .query(&[
+                (
+                    &"q",
+                    &format!(
+                        "{}, {}",
+                        // OpenCage expects lat, lon order
+                        (&point.y().to_f64().unwrap().to_string()),
+                        &point.x().to_f64().unwrap().to_string()
+                    ),
+                ),
+                (&"key", &self.api_key),
+                (&"no_annotations", &String::from("0")),
+                (&"no_record", &String::from("1")),
+            ])
+            .send()?
+            .error_for_status()?;
+        let res: OpencageResponse<T> = resp.json()?;
+        // it's OK to index into this vec, because reverse-geocoding only returns a single result
+        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+            let mut lock = self.remaining.try_lock();
+            if let Ok(ref mut mutex) = lock {
+                **mutex = Some(**headers)
+            }
+        }
+        Ok(res)
+    }
+    /// A forward-geocoding lookup of an address. Please see [the documentation](https://geocoder.opencagedata.com/api#ambiguous-results) for details
+    /// of best practices in order to obtain good-quality results.
+    ///
+    /// This method passes the `no_record` parameter to the API.
+    pub fn forward_full<T>(
+        &self,
+        place: &str,
+        bounds: Option<InputBounds<T>>,
+    ) -> reqwest::Result<OpencageResponse<T>>
+    where
+        T: Float,
+        for<'de> T: Deserialize<'de>,
+    {
+        let ann = String::from("0");
+        let record = String::from("1");
+        // we need this to avoid lifetime inconvenience
+        let bd;
+        let mut query = vec![
+            ("q", place),
+            ("key", &self.api_key),
+            ("no_annotations", &ann),
+            ("no_record", &record),
+        ];
+        // If search bounds are passed, use them
+        if let Some(bds) = bounds {
+            bd = String::from(bds);
+            query.push(("bounds", &bd));
+        }
+        let mut resp = self.client
+            .get(&self.endpoint)
+            .query(&query)
+            .send()?
+            .error_for_status()?;
+        let res: OpencageResponse<T> = resp.json()?;
+        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+            let mut lock = self.remaining.try_lock();
+            if let Ok(ref mut mutex) = lock {
+                **mutex = Some(**headers)
+            }
+        }
+        Ok(res)
+    }
 }
 
 impl<T> Reverse<T> for Opencage
@@ -279,7 +357,7 @@ where
 ///   "total_results": 1
 /// }
 ///```
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct OpencageResponse<T>
 where
     T: Float,
@@ -296,7 +374,7 @@ where
 }
 
 /// A forward geocoding result
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Results<T>
 where
     T: Float,
@@ -310,7 +388,7 @@ where
 }
 
 /// Annotations pertaining to the geocoding result
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Annotations<T>
 where
     T: Float,
@@ -331,7 +409,7 @@ where
 }
 
 /// Currency metadata
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Currency {
     pub alternate_symbols: Vec<String>,
     pub decimal_mark: String,
@@ -348,14 +426,14 @@ pub struct Currency {
 }
 
 /// Sunrise and sunset metadata
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Sun {
     pub rise: HashMap<String, i64>,
     pub set: HashMap<String, i64>,
 }
 
 /// Timezone metadata
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Timezone {
     pub name: String,
     pub now_in_dst: i16,
@@ -365,7 +443,7 @@ pub struct Timezone {
 }
 
 /// HTTP status metadata
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Status {
     pub message: String,
     pub code: i16,
@@ -373,20 +451,49 @@ pub struct Status {
 
 /// Timestamp metadata
 // TODO: could this be represented as something less naive?
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Timestamp {
     pub created_http: String,
     pub created_unix: i64,
 }
 
 /// Bounding-box metadata
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Bounds<T>
 where
     T: Float,
 {
     pub northeast: HashMap<String, T>,
     pub southwest: HashMap<String, T>,
+}
+
+/// Used to specify a bounding box to search within when forward-geocoding
+///
+/// - `minimum` refers to the **bottom-left** or **south-west** corner of the bouding box
+/// - `maximum` refers to the **top-right** or **north-east** corner of the bounding box.
+#[derive(Debug, Deserialize)]
+pub struct InputBounds<T>
+where
+    T: Float,
+{
+    pub minimum_lonlat: Point<T>,
+    pub maximum_lonlat: Point<T>,
+}
+
+impl<T> From<InputBounds<T>> for String
+where
+    T: Float,
+{
+    fn from(ip: InputBounds<T>) -> String {
+        // OpenCage expects lon, lat order here, for some reason
+        format!(
+            "{}, {}, {}, {}",
+            ip.minimum_lonlat.x().to_f64().unwrap().to_string(),
+            ip.minimum_lonlat.y().to_f64().unwrap().to_string(),
+            ip.maximum_lonlat.x().to_f64().unwrap().to_string(),
+            ip.maximum_lonlat.y().to_f64().unwrap().to_string()
+        )
+    }
 }
 
 #[cfg(test)]
