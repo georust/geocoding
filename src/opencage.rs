@@ -19,6 +19,7 @@
 //! let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
 //! let p = Point::new(2.12870, 41.40139);
 //! let res = oc.reverse(&p);
+//! // "Carrer de Calatrava, 68, 08017 Barcelona, Spain"
 //! println!("{:?}", res.unwrap());
 //! ```
 use std::sync::{Arc, Mutex};
