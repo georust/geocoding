@@ -488,7 +488,7 @@ where
     fn from(ip: InputBounds<T>) -> String {
         // OpenCage expects lon, lat order here, for some reason
         format!(
-            "{}, {}, {}, {}",
+            "{},{},{},{}",
             ip.minimum_lonlat.x().to_f64().unwrap().to_string(),
             ip.minimum_lonlat.y().to_f64().unwrap().to_string(),
             ip.maximum_lonlat.x().to_f64().unwrap().to_string(),
