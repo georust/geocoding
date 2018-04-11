@@ -136,12 +136,12 @@ impl Opencage {
     ///
     /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
     /// let address = "UCL CASA";
-    /// // restrict the search space
-    /// let bbox = InputBounds {
-    ///     minimum_lonlat: Point::new(-0.13806939125061035, 51.51989264641164),
-    ///     maximum_lonlat: Point::new(-0.13427138328552246, 51.52319711775629),
-    /// };
-    /// let res = oc.forward_full(&address, &Some(bbox)).unwrap();
+    /// // restrict the search space. An `into()` conversion exists for `Point` tuples
+    /// let bbox = (
+    ///     Point::new(-0.13806939125061035, 51.51989264641164),
+    ///     Point::new(-0.13427138328552246, 51.52319711775629),
+    /// );
+    /// let res = oc.forward_full(&address, &Some(bbox.into())).unwrap();
     /// let first_result = &res.results[0];
     /// // the first result is correct
     /// assert_eq!(first_result.formatted, "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom");
@@ -517,6 +517,7 @@ where
     pub maximum_lonlat: Point<T>,
 }
 
+/// Convert borrowed input bounds into the correct String representation
 impl<'a, T> From<&'a InputBounds<T>> for String
 where
     T: Float,
@@ -530,6 +531,19 @@ where
             ip.maximum_lonlat.x().to_f64().unwrap().to_string(),
             ip.maximum_lonlat.y().to_f64().unwrap().to_string()
         )
+    }
+}
+
+/// Convert a tuple of Points into search bounds
+impl<T> From<(Point<T>, Point<T>)> for InputBounds<T>
+where
+    T: Float,
+{
+    fn from(t: (Point<T>, Point<T>)) -> InputBounds<T> {
+        InputBounds {
+            minimum_lonlat: t.0,
+            maximum_lonlat: t.1,
+        }
     }
 }
 
@@ -572,11 +586,11 @@ mod test {
     fn forward_full_test() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
         let address = "UCL CASA";
-        let bbox = InputBounds {
-            minimum_lonlat: Point::new(-0.13806939125061035, 51.51989264641164),
-            maximum_lonlat: Point::new(-0.13427138328552246, 51.52319711775629),
-        };
-        let res = oc.forward_full(&address, &Some(bbox)).unwrap();
+        let bbox = (
+            Point::new(-0.13806939125061035, 51.51989264641164),
+            Point::new(-0.13427138328552246, 51.52319711775629),
+        );
+        let res = oc.forward_full(&address, &Some(bbox.into())).unwrap();
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
