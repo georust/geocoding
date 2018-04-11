@@ -70,9 +70,24 @@ impl Opencage {
     pub fn remaining_calls(&self) -> Option<i32> {
         *self.remaining.lock().unwrap()
     }
-    /// A reverse lookup of a point.
+    /// A reverse lookup of a point, returning an annotated response.
     ///
     /// This method passes the `no_record` parameter to the API.
+    ///
+    ///```
+    /// use geocoding::{Opencage, Point};
+    ///
+    /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+    /// let p = Point::new(2.12870, 41.40139);
+    /// // a full `OpencageResponse` struct
+    /// let res = oc.reverse_full(&p).unwrap();
+    /// // responses may include multiple results
+    /// let first_result = &res.results[0];
+    /// assert_eq!(
+    ///     first_result.components["road"],
+    ///     "Carrer de Calatrava"
+    /// );
+    ///```
     pub fn reverse_full<T>(&self, point: &Point<T>) -> reqwest::Result<OpencageResponse<T>>
     where
         T: Float,
@@ -106,10 +121,30 @@ impl Opencage {
         }
         Ok(res)
     }
-    /// A forward-geocoding lookup of an address. Please see [the documentation](https://geocoder.opencagedata.com/api#ambiguous-results) for details
+    /// A forward-geocoding lookup of an address, returning an annotated response.
+    ///
+    /// You may restrict the search space by passing an optional bounding box to search within.
+    /// Please see [the documentation](https://geocoder.opencagedata.com/api#ambiguous-results) for details
     /// of best practices in order to obtain good-quality results.
     ///
     /// This method passes the `no_record` parameter to the API.
+    ///
+    ///```
+    /// use geocoding::{Opencage, Point};
+    /// use geocoding::opencage::InputBounds;
+    ///
+    /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+    /// let address = "UCL CASA";
+    /// // restrict the search space
+    /// let bbox = InputBounds {
+    ///     minimum_lonlat: Point::new(-0.13806939125061035, 51.51989264641164),
+    ///     maximum_lonlat: Point::new(-0.13427138328552246, 51.52319711775629),
+    /// };
+    /// let res = oc.forward_full(&address, Some(bbox)).unwrap();
+    /// let first_result = &res.results[0];
+    /// // the first result is correct
+    /// assert_eq!(first_result.formatted, "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom");
+    ///```
     pub fn forward_full<T>(
         &self,
         place: &str,
@@ -522,6 +557,29 @@ mod test {
                 Point::new(11.5761796, 48.1599218),
                 Point::new(11.57583, 48.1608265),
             ]
+        );
+    }
+    #[test]
+    fn reverse_full_test() {
+        let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+        let p = Point::new(2.12870, 41.40139);
+        let res = oc.reverse_full(&p).unwrap();
+        let first_result = &res.results[0];
+        assert_eq!(first_result.components["road"], "Carrer de Calatrava");
+    }
+    #[test]
+    fn forward_full_test() {
+        let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+        let address = "UCL CASA";
+        let bbox = InputBounds {
+            minimum_lonlat: Point::new(-0.13806939125061035, 51.51989264641164),
+            maximum_lonlat: Point::new(-0.13427138328552246, 51.52319711775629),
+        };
+        let res = oc.forward_full(&address, Some(bbox)).unwrap();
+        let first_result = &res.results[0];
+        assert_eq!(
+            first_result.formatted,
+            "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom"
         );
     }
 }
