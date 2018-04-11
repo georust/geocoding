@@ -1,10 +1,11 @@
 //! The [OpenCage Geocoding](https://geocoder.opencagedata.com/) provider.
 //!
+//! Geocoding methods are implemented on the [`Opencage`](struct.Opencage.html) struct.
 //! Please see the [API documentation](https://geocoder.opencagedata.com/api) for details.
 //! Note that rate limits apply to the free tier:
 //! there is a [rate-limit](https://geocoder.opencagedata.com/api#rate-limiting) of 1 request per second,
 //! and a quota of calls allowed per 24-hour period. The remaining daily quota can be retrieved
-//! Using the [`remaining_calls()`](struct.Opencage.html#method.remaining_calls) method. If you
+//! using the [`remaining_calls()`](struct.Opencage.html#method.remaining_calls) method. If you
 //! are a paid tier user, this value will not be updated, and will remain `None`.
 //! ### A Note on Coordinate Order
 //! This provider's API documentation shows all coordinates in `[Latitude, Longitude]` order.
