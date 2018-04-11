@@ -165,7 +165,7 @@ impl Opencage {
             ("no_record", &record),
         ];
         // If search bounds are passed, use them
-        if let &Some(ref bds) = bounds {
+        if let Some(ref bds) = *bounds {
             bd = String::from(bds);
             query.push(("bounds", &bd));
         }
