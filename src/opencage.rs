@@ -1,8 +1,11 @@
 //! The [OpenCage Geocoding](https://geocoder.opencagedata.com/) provider.
 //!
+//! Geocoding methods are implemented on the [`Opencage`](struct.Opencage.html) struct.
 //! Please see the [API documentation](https://geocoder.opencagedata.com/api) for details.
-//! Note that rate limits apply to the free tier; the remaining daily quota can be retrieved
-//! Using the [`remaining_calls()`](struct.Opencage.html#method.remaining_calls) method. If you
+//! Note that rate limits apply to the free tier:
+//! there is a [rate-limit](https://geocoder.opencagedata.com/api#rate-limiting) of 1 request per second,
+//! and a quota of calls allowed per 24-hour period. The remaining daily quota can be retrieved
+//! using the [`remaining_calls()`](struct.Opencage.html#method.remaining_calls) method. If you
 //! are a paid tier user, this value will not be updated, and will remain `None`.
 //! ### A Note on Coordinate Order
 //! This provider's API documentation shows all coordinates in `[Latitude, Longitude]` order.
@@ -17,6 +20,7 @@
 //! let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
 //! let p = Point::new(2.12870, 41.40139);
 //! let res = oc.reverse(&p);
+//! // "Carrer de Calatrava, 68, 08017 Barcelona, Spain"
 //! println!("{:?}", res.unwrap());
 //! ```
 use std::sync::{Arc, Mutex};
@@ -61,10 +65,124 @@ impl Opencage {
     }
     /// Retrieve the remaining API calls in your daily quota
     ///
-    /// Initially, this value is `None`. Any OpenCage API call will update this
-    /// value to reflect the remaining quota for the API key. See the [API docs](https://geocoder.opencagedata.com/api#rate-limiting) for details.
+    /// Initially, this value is `None`. Any OpenCage API call using a "Free Tier" key
+    /// will update this value to reflect the remaining quota for the API key.
+    /// See the [API docs](https://geocoder.opencagedata.com/api#rate-limiting) for details.
     pub fn remaining_calls(&self) -> Option<i32> {
         *self.remaining.lock().unwrap()
+    }
+    /// A reverse lookup of a point, returning an annotated response.
+    ///
+    /// This method passes the `no_record` parameter to the API.
+    ///
+    ///```
+    /// use geocoding::{Opencage, Point};
+    ///
+    /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+    /// let p = Point::new(2.12870, 41.40139);
+    /// // a full `OpencageResponse` struct
+    /// let res = oc.reverse_full(&p).unwrap();
+    /// // responses may include multiple results
+    /// let first_result = &res.results[0];
+    /// assert_eq!(
+    ///     first_result.components["road"],
+    ///     "Carrer de Calatrava"
+    /// );
+    ///```
+    pub fn reverse_full<T>(&self, point: &Point<T>) -> reqwest::Result<OpencageResponse<T>>
+    where
+        T: Float,
+        for<'de> T: Deserialize<'de>,
+    {
+        let mut resp = self.client
+            .get(&self.endpoint)
+            .query(&[
+                (
+                    &"q",
+                    &format!(
+                        "{}, {}",
+                        // OpenCage expects lat, lon order
+                        (&point.y().to_f64().unwrap().to_string()),
+                        &point.x().to_f64().unwrap().to_string()
+                    ),
+                ),
+                (&"key", &self.api_key),
+                (&"no_annotations", &String::from("0")),
+                (&"no_record", &String::from("1")),
+            ])
+            .send()?
+            .error_for_status()?;
+        let res: OpencageResponse<T> = resp.json()?;
+        // it's OK to index into this vec, because reverse-geocoding only returns a single result
+        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+            let mut lock = self.remaining.try_lock();
+            if let Ok(ref mut mutex) = lock {
+                **mutex = Some(**headers)
+            }
+        }
+        Ok(res)
+    }
+    /// A forward-geocoding lookup of an address, returning an annotated response.
+    ///
+    /// You may restrict the search space by passing an optional bounding box to search within.
+    /// Please see [the documentation](https://geocoder.opencagedata.com/api#ambiguous-results) for details
+    /// of best practices in order to obtain good-quality results.
+    ///
+    /// This method passes the `no_record` parameter to the API.
+    ///
+    ///```
+    /// use geocoding::{Opencage, Point};
+    /// use geocoding::opencage::InputBounds;
+    ///
+    /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+    /// let address = "UCL CASA";
+    /// // restrict the search space. An `into()` conversion exists for `Point` tuples
+    /// let bbox = (
+    ///     Point::new(-0.13806939125061035, 51.51989264641164),
+    ///     Point::new(-0.13427138328552246, 51.52319711775629),
+    /// );
+    /// let res = oc.forward_full(&address, &Some(bbox.into())).unwrap();
+    /// let first_result = &res.results[0];
+    /// // the first result is correct
+    /// assert_eq!(first_result.formatted, "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom");
+    ///```
+    pub fn forward_full<T>(
+        &self,
+        place: &str,
+        bounds: &Option<InputBounds<T>>,
+    ) -> reqwest::Result<OpencageResponse<T>>
+    where
+        T: Float,
+        for<'de> T: Deserialize<'de>,
+    {
+        let ann = String::from("0");
+        let record = String::from("1");
+        // we need this to avoid lifetime inconvenience
+        let bd;
+        let mut query = vec![
+            ("q", place),
+            ("key", &self.api_key),
+            ("no_annotations", &ann),
+            ("no_record", &record),
+        ];
+        // If search bounds are passed, use them
+        if let Some(ref bds) = *bounds {
+            bd = String::from(bds);
+            query.push(("bounds", &bd));
+        }
+        let mut resp = self.client
+            .get(&self.endpoint)
+            .query(&query)
+            .send()?
+            .error_for_status()?;
+        let res: OpencageResponse<T> = resp.json()?;
+        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+            let mut lock = self.remaining.try_lock();
+            if let Ok(ref mut mutex) = lock {
+                **mutex = Some(**headers)
+            }
+        }
+        Ok(res)
     }
 }
 
@@ -99,10 +217,11 @@ where
         let res: OpencageResponse<T> = resp.json()?;
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
         let address = &res.results[0];
-        let headers = resp.headers().get::<XRatelimitRemaining>().unwrap();
-        let mut lock = self.remaining.try_lock();
-        if let Ok(ref mut mutex) = lock {
-            **mutex = Some(**headers)
+        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+            let mut lock = self.remaining.try_lock();
+            if let Ok(ref mut mutex) = lock {
+                **mutex = Some(**headers)
+            }
         }
         Ok(address.formatted.to_string())
     }
@@ -135,7 +254,6 @@ where
                 **mutex = Some(**headers)
             }
         }
-        // let headers = resp.headers().get::<XRatelimitRemaining>().unwrap();
         Ok(res.results
             .iter()
             .map(|res| Point::new(res.geometry["lng"], res.geometry["lat"]))
@@ -276,7 +394,7 @@ where
 ///   "total_results": 1
 /// }
 ///```
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct OpencageResponse<T>
 where
     T: Float,
@@ -293,7 +411,7 @@ where
 }
 
 /// A forward geocoding result
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Results<T>
 where
     T: Float,
@@ -307,7 +425,7 @@ where
 }
 
 /// Annotations pertaining to the geocoding result
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Annotations<T>
 where
     T: Float,
@@ -328,7 +446,7 @@ where
 }
 
 /// Currency metadata
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Currency {
     pub alternate_symbols: Vec<String>,
     pub decimal_mark: String,
@@ -345,14 +463,14 @@ pub struct Currency {
 }
 
 /// Sunrise and sunset metadata
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Sun {
     pub rise: HashMap<String, i64>,
     pub set: HashMap<String, i64>,
 }
 
 /// Timezone metadata
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Timezone {
     pub name: String,
     pub now_in_dst: i16,
@@ -362,7 +480,7 @@ pub struct Timezone {
 }
 
 /// HTTP status metadata
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Status {
     pub message: String,
     pub code: i16,
@@ -370,20 +488,63 @@ pub struct Status {
 
 /// Timestamp metadata
 // TODO: could this be represented as something less naive?
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Timestamp {
     pub created_http: String,
     pub created_unix: i64,
 }
 
 /// Bounding-box metadata
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Bounds<T>
 where
     T: Float,
 {
     pub northeast: HashMap<String, T>,
     pub southwest: HashMap<String, T>,
+}
+
+/// Used to specify a bounding box to search within when forward-geocoding
+///
+/// - `minimum` refers to the **bottom-left** or **south-west** corner of the bouding box
+/// - `maximum` refers to the **top-right** or **north-east** corner of the bounding box.
+#[derive(Debug, Deserialize)]
+pub struct InputBounds<T>
+where
+    T: Float,
+{
+    pub minimum_lonlat: Point<T>,
+    pub maximum_lonlat: Point<T>,
+}
+
+/// Convert borrowed input bounds into the correct String representation
+impl<'a, T> From<&'a InputBounds<T>> for String
+where
+    T: Float,
+{
+    fn from(ip: &InputBounds<T>) -> String {
+        // OpenCage expects lon, lat order here, for some reason
+        format!(
+            "{},{},{},{}",
+            ip.minimum_lonlat.x().to_f64().unwrap().to_string(),
+            ip.minimum_lonlat.y().to_f64().unwrap().to_string(),
+            ip.maximum_lonlat.x().to_f64().unwrap().to_string(),
+            ip.maximum_lonlat.y().to_f64().unwrap().to_string()
+        )
+    }
+}
+
+/// Convert a tuple of Points into search bounds
+impl<T> From<(Point<T>, Point<T>)> for InputBounds<T>
+where
+    T: Float,
+{
+    fn from(t: (Point<T>, Point<T>)) -> InputBounds<T> {
+        InputBounds {
+            minimum_lonlat: t.0,
+            maximum_lonlat: t.1,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -411,6 +572,29 @@ mod test {
                 Point::new(11.5761796, 48.1599218),
                 Point::new(11.57583, 48.1608265),
             ]
+        );
+    }
+    #[test]
+    fn reverse_full_test() {
+        let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+        let p = Point::new(2.12870, 41.40139);
+        let res = oc.reverse_full(&p).unwrap();
+        let first_result = &res.results[0];
+        assert_eq!(first_result.components["road"], "Carrer de Calatrava");
+    }
+    #[test]
+    fn forward_full_test() {
+        let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+        let address = "UCL CASA";
+        let bbox = (
+            Point::new(-0.13806939125061035, 51.51989264641164),
+            Point::new(-0.13427138328552246, 51.52319711775629),
+        );
+        let res = oc.forward_full(&address, &Some(bbox.into())).unwrap();
+        let first_result = &res.results[0];
+        assert_eq!(
+            first_result.formatted,
+            "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom"
         );
     }
 }
