@@ -569,7 +569,7 @@ mod test {
         assert_eq!(
             res.unwrap(),
             vec![
-                Point::new(11.5761796, 48.1599218)
+                Point::new(11.5761796, 48.1599218),
             ]
         );
     }
