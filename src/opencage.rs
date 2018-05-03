@@ -508,7 +508,7 @@ where
 ///
 /// - `minimum` refers to the **bottom-left** or **south-west** corner of the bouding box
 /// - `maximum` refers to the **top-right** or **north-east** corner of the bounding box.
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 pub struct InputBounds<T>
 where
     T: Float,
@@ -570,6 +570,7 @@ mod test {
             res.unwrap(),
             vec![
                 Point::new(11.5761796, 48.1599218),
+                Point::new(11.57583, 48.1608265)
             ]
         );
     }

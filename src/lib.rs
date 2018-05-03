@@ -13,8 +13,8 @@
 //! and returns data in that order.
 //!
 static UA_STRING: &'static str = "Rust-Geocoding";
-extern crate geo;
-pub use geo::Point;
+extern crate geo_types;
+pub use geo_types::Point;
 
 extern crate num_traits;
 use num_traits::Float;
@@ -83,6 +83,7 @@ where
 ///     res.unwrap(),
 ///     vec![
 ///         Point::new(11.5761796, 48.1599218),
+///         Point::new(11.57583, 48.1608265)
 ///     ]
 /// );
 /// ```
