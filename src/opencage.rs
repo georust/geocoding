@@ -570,6 +570,7 @@ mod test {
             res.unwrap(),
             vec![
                 Point::new(11.5761796, 48.1599218),
+                Point::new(11.57583, 48.1608265)
             ]
         );
     }
