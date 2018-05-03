@@ -9,7 +9,7 @@ keywords = ["gecoding", "geo", "gis", "geospatial"]
 readme = "README.md"
 
 [dependencies]
-geo = "0.7.4"
+geo-types = "0.1.0"
 num-traits = "0.2"
 serde = "1.0"
 serde_derive = "1.0"
