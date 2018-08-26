@@ -28,9 +28,9 @@ use std::sync::{Arc, Mutex};
 use super::num_traits::Float;
 use std::collections::HashMap;
 
+use super::reqwest;
 use super::Deserialize;
 use super::UA_STRING;
-use super::reqwest;
 use super::{header, Client};
 
 use super::Point;
@@ -94,7 +94,8 @@ impl Opencage {
         T: Float,
         for<'de> T: Deserialize<'de>,
     {
-        let mut resp = self.client
+        let mut resp = self
+            .client
             .get(&self.endpoint)
             .query(&[
                 (
@@ -109,8 +110,7 @@ impl Opencage {
                 (&"key", &self.api_key),
                 (&"no_annotations", &String::from("0")),
                 (&"no_record", &String::from("1")),
-            ])
-            .send()?
+            ]).send()?
             .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
@@ -170,7 +170,8 @@ impl Opencage {
             bd = String::from(bds);
             query.push(("bounds", &bd));
         }
-        let mut resp = self.client
+        let mut resp = self
+            .client
             .get(&self.endpoint)
             .query(&query)
             .send()?
@@ -196,7 +197,8 @@ where
     ///
     /// This method passes the `no_annotations` and `no_record` parameters to the API.
     fn reverse(&self, point: &Point<T>) -> reqwest::Result<String> {
-        let mut resp = self.client
+        let mut resp = self
+            .client
             .get(&self.endpoint)
             .query(&[
                 (
@@ -211,8 +213,7 @@ where
                 (&"key", &self.api_key),
                 (&"no_annotations", &String::from("1")),
                 (&"no_record", &String::from("1")),
-            ])
-            .send()?
+            ]).send()?
             .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
@@ -237,15 +238,15 @@ where
     ///
     /// This method passes the `no_annotations` and `no_record` parameters to the API.
     fn forward(&self, place: &str) -> reqwest::Result<Vec<Point<T>>> {
-        let mut resp = self.client
+        let mut resp = self
+            .client
             .get(&self.endpoint)
             .query(&[
                 (&"q", place),
                 (&"key", &self.api_key),
                 (&"no_annotations", &String::from("1")),
                 (&"no_record", &String::from("1")),
-            ])
-            .send()?
+            ]).send()?
             .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
         if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
@@ -254,7 +255,8 @@ where
                 **mutex = Some(**headers)
             }
         }
-        Ok(res.results
+        Ok(res
+            .results
             .iter()
             .map(|res| Point::new(res.geometry["lng"], res.geometry["lat"]))
             .collect())
