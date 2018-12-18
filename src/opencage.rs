@@ -214,11 +214,7 @@ impl Opencage {
     ///     "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom"
     /// );
     /// ```
-    pub fn forward_full<T, U>(
-        &self,
-        place: &str,
-        bounds: U,
-    ) -> Result<OpencageResponse<T>, Error>
+    pub fn forward_full<T, U>(&self, place: &str, bounds: U) -> Result<OpencageResponse<T>, Error>
     where
         T: Float,
         U: Into<Option<InputBounds<T>>>,
@@ -236,7 +232,7 @@ impl Opencage {
         ];
         // If search bounds are passed, use them
         if let Some(bds) = bounds.into() {
-            bd = String::from(InputBounds::from(bds));
+            bd = String::from(bds);
             query.push(("bounds", &bd));
         }
         let mut resp = self
@@ -602,18 +598,18 @@ where
 
 impl<T> InputBounds<T>
 where
-    T: Float
+    T: Float,
 {
     /// Create a new `InputBounds` struct by passing 2 `Point`s defining:
     /// - minimum (bottom-left) longitude and latitude coordinates
     /// - maximum (top-right) longitude and latitude coordinates
     pub fn new<U>(minimum_lonlat: U, maximum_lonlat: U) -> InputBounds<T>
     where
-        U: Into<Point<T>>
+        U: Into<Point<T>>,
     {
         InputBounds {
             minimum_lonlat: minimum_lonlat.into(),
-            maximum_lonlat: maximum_lonlat.into()
+            maximum_lonlat: maximum_lonlat.into(),
         }
     }
 }
