@@ -98,6 +98,8 @@ impl Opencage {
     ///
     /// This method passes the `no_record` parameter to the API.
     ///
+    /// # Examples
+    ///
     ///```
     /// use geocoding::{Opencage, Point};
     ///
@@ -161,6 +163,8 @@ impl Opencage {
     ///
     /// This method passes the `no_record` parameter to the API.
     ///
+    /// # Examples
+    ///
     ///```
     /// use geocoding::{Opencage, Point};
     /// use geocoding::opencage::InputBounds;
@@ -173,12 +177,43 @@ impl Opencage {
     ///     Point::new(-0.13806939125061035, 51.51989264641164),
     ///     Point::new(-0.13427138328552246, 51.52319711775629),
     /// );
-    /// // Pass NOBOX if you don't need bounds.
     /// let res = oc.forward_full(&address, bbox).unwrap();
     /// let first_result = &res.results[0];
     /// // the first result is correct
     /// assert_eq!(first_result.formatted, "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom");
     ///```
+    ///
+    /// ```
+    /// // You can pass NOBOX if you don't need bounds.
+    /// use geocoding::{Opencage, Point};
+    /// use geocoding::opencage::{InputBounds, NOBOX};
+    /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+    /// let address = "UCL CASA";
+    /// let res = oc.forward_full(&address, NOBOX).unwrap();
+    /// let first_result = &res.results[0];
+    /// assert_eq!(
+    ///     first_result.formatted,
+    ///     "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom"
+    /// );
+    /// ```
+    ///
+    /// ```
+    /// // There are several ways to construct a Point – the Turbofish is necessary
+    /// use geocoding::{Opencage, Point};
+    /// use geocoding::opencage::InputBounds;
+    /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+    /// let address = "UCL CASA";
+    /// let bbox = InputBounds::new::<Point<f64>>(
+    ///     (-0.13806939125061035, 51.51989264641164).into(),
+    ///     (-0.13427138328552246, 51.52319711775629).into(),
+    /// );
+    /// let res = oc.forward_full(&address, bbox).unwrap();
+    /// let first_result = &res.results[0];
+    /// assert_eq!(
+    ///     first_result.formatted,
+    ///     "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom"
+    /// );
+    /// ```
     pub fn forward_full<T, U>(
         &self,
         place: &str,
@@ -657,6 +692,36 @@ mod test {
         let bbox = InputBounds::new(
             Point::new(-0.13806939125061035, 51.51989264641164),
             Point::new(-0.13427138328552246, 51.52319711775629),
+        );
+        let res = oc.forward_full(&address, bbox).unwrap();
+        let first_result = &res.results[0];
+        assert_eq!(
+            first_result.formatted,
+            "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom"
+        );
+    }
+    #[test]
+    fn forward_full_test_pointfrom() {
+        let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+        let address = "UCL CASA";
+        let bbox = InputBounds::new(
+            Point::from((-0.13806939125061035, 51.51989264641164)),
+            Point::from((-0.13427138328552246, 51.52319711775629)),
+        );
+        let res = oc.forward_full(&address, bbox).unwrap();
+        let first_result = &res.results[0];
+        assert_eq!(
+            first_result.formatted,
+            "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom"
+        );
+    }
+    #[test]
+    fn forward_full_test_pointinto() {
+        let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+        let address = "UCL CASA";
+        let bbox = InputBounds::new::<Point<f64>>(
+            (-0.13806939125061035, 51.51989264641164).into(),
+            (-0.13427138328552246, 51.52319711775629).into(),
         );
         let res = oc.forward_full(&address, bbox).unwrap();
         let first_result = &res.results[0];
