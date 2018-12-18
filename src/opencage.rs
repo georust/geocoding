@@ -23,21 +23,44 @@
 //! // "Carrer de Calatrava, 68, 08017 Barcelona, Spain"
 //! println!("{:?}", res.unwrap());
 //! ```
+use crate::chrono::naive::serde::ts_seconds::deserialize as from_ts;
+use crate::chrono::NaiveDateTime;
+use crate::Deserialize;
+use crate::Point;
+use crate::UA_STRING;
+use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
+use crate::{Forward, Reverse};
+use failure::Error;
+use num_traits::Float;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use super::num_traits::Float;
-use std::collections::HashMap;
+mod string_or_int {
+    use crate::{Deserialize, Deserializer};
 
-use super::reqwest;
-use super::Deserialize;
-use super::UA_STRING;
-use super::{header, Client};
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<String, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum StringOrInt {
+            String(String),
+            Int(i32),
+        }
 
-use super::Point;
-use super::{Forward, Reverse};
+        match StringOrInt::deserialize(deserializer)? {
+            StringOrInt::String(s) => Ok(s),
+            StringOrInt::Int(i) => Ok(i.to_string()),
+        }
+    }
+}
 
 // OpenCage has a custom rate-limit header, indicating remaining calls
-header! { (XRatelimitRemaining, "X-RateLimit-Remaining") => [i32] }
+// header! { (XRatelimitRemaining, "X-RateLimit-Remaining") => [i32] }
+static XRL: &'static str = "x-ratelimit-remaining";
+/// Use this constant if you don't need to restrict a `forward_full` call with a bounding box
+pub static NOBOX: Option<InputBounds<f64>> = None::<InputBounds<f64>>;
 
 /// An instance of the Opencage Geocoding service
 pub struct Opencage {
@@ -50,8 +73,8 @@ pub struct Opencage {
 impl Opencage {
     /// Create a new OpenCage geocoding instance
     pub fn new(api_key: String) -> Self {
-        let mut headers = header::Headers::new();
-        headers.set(header::UserAgent::new(UA_STRING));
+        let mut headers = HeaderMap::new();
+        headers.insert(USER_AGENT, HeaderValue::from_static(UA_STRING));
         let client = Client::builder()
             .default_headers(headers)
             .build()
@@ -89,7 +112,7 @@ impl Opencage {
     ///     "Carrer de Calatrava"
     /// );
     ///```
-    pub fn reverse_full<T>(&self, point: &Point<T>) -> reqwest::Result<OpencageResponse<T>>
+    pub fn reverse_full<T>(&self, point: &Point<T>) -> Result<OpencageResponse<T>, Error>
     where
         T: Float,
         for<'de> T: Deserialize<'de>,
@@ -110,21 +133,29 @@ impl Opencage {
                 (&"key", &self.api_key),
                 (&"no_annotations", &String::from("0")),
                 (&"no_record", &String::from("1")),
-            ]).send()?
+            ])
+            .send()?
             .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
-        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+        if let Some(headers) = resp.headers().get::<_>(XRL) {
             let mut lock = self.remaining.try_lock();
             if let Ok(ref mut mutex) = lock {
-                **mutex = Some(**headers)
+                // not ideal, but typed headers are currently impossible in 0.9.x
+                let h = headers.to_str()?;
+                let h: i32 = h.parse()?;
+                **mutex = Some(h)
             }
         }
         Ok(res)
     }
     /// A forward-geocoding lookup of an address, returning an annotated response.
     ///
-    /// You may restrict the search space by passing an optional bounding box to search within.
+    /// it is recommended that you restrict the search space by passing a
+    /// [bounding box](struct.InputBounds.html) to search within.
+    /// If you don't need or want to restrict the search using a bounding box (usually not recommended), you
+    /// may pass the [`NOBOX`](static.NOBOX.html) static value instead.
+    ///
     /// Please see [the documentation](https://opencagedata.com/api#ambiguous-results) for details
     /// of best practices in order to obtain good-quality results.
     ///
@@ -136,23 +167,26 @@ impl Opencage {
     ///
     /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
     /// let address = "UCL CASA";
-    /// // restrict the search space. An `into()` conversion exists for `Point` tuples
-    /// let bbox = (
+    /// // Optionally restrict the search space using a bounding box.
+    /// // The first point is the bottom-left corner, the second is the top-right.
+    /// let bbox = InputBounds::new(
     ///     Point::new(-0.13806939125061035, 51.51989264641164),
     ///     Point::new(-0.13427138328552246, 51.52319711775629),
     /// );
-    /// let res = oc.forward_full(&address, &Some(bbox.into())).unwrap();
+    /// // Pass NOBOX if you don't need bounds.
+    /// let res = oc.forward_full(&address, bbox).unwrap();
     /// let first_result = &res.results[0];
     /// // the first result is correct
     /// assert_eq!(first_result.formatted, "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom");
     ///```
-    pub fn forward_full<T>(
+    pub fn forward_full<T, U>(
         &self,
         place: &str,
-        bounds: &Option<InputBounds<T>>,
-    ) -> reqwest::Result<OpencageResponse<T>>
+        bounds: U,
+    ) -> Result<OpencageResponse<T>, Error>
     where
         T: Float,
+        U: Into<Option<InputBounds<T>>>,
         for<'de> T: Deserialize<'de>,
     {
         let ann = String::from("0");
@@ -166,8 +200,8 @@ impl Opencage {
             ("no_record", &record),
         ];
         // If search bounds are passed, use them
-        if let Some(ref bds) = *bounds {
-            bd = String::from(bds);
+        if let Some(bds) = bounds.into() {
+            bd = String::from(InputBounds::from(bds));
             query.push(("bounds", &bd));
         }
         let mut resp = self
@@ -177,10 +211,13 @@ impl Opencage {
             .send()?
             .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
-        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+        if let Some(headers) = resp.headers().get::<_>(XRL) {
             let mut lock = self.remaining.try_lock();
             if let Ok(ref mut mutex) = lock {
-                **mutex = Some(**headers)
+                // not ideal, but typed headers are currently impossible in 0.9.x
+                let h = headers.to_str()?;
+                let h: i32 = h.parse()?;
+                **mutex = Some(h)
             }
         }
         Ok(res)
@@ -196,7 +233,7 @@ where
     /// returned `String` can be found [here](https://blog.opencagedata.com/post/99059889253/good-looking-addresses-solving-the-berlin-berlin)
     ///
     /// This method passes the `no_annotations` and `no_record` parameters to the API.
-    fn reverse(&self, point: &Point<T>) -> reqwest::Result<String> {
+    fn reverse(&self, point: &Point<T>) -> Result<String, Error> {
         let mut resp = self
             .client
             .get(&self.endpoint)
@@ -213,15 +250,19 @@ where
                 (&"key", &self.api_key),
                 (&"no_annotations", &String::from("1")),
                 (&"no_record", &String::from("1")),
-            ]).send()?
+            ])
+            .send()?
             .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
         let address = &res.results[0];
-        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+        if let Some(headers) = resp.headers().get::<_>(XRL) {
             let mut lock = self.remaining.try_lock();
             if let Ok(ref mut mutex) = lock {
-                **mutex = Some(**headers)
+                // not ideal, but typed headers are currently impossible in 0.9.x
+                let h = headers.to_str()?;
+                let h: i32 = h.parse()?;
+                **mutex = Some(h)
             }
         }
         Ok(address.formatted.to_string())
@@ -237,7 +278,7 @@ where
     /// of best practices in order to obtain good-quality results.
     ///
     /// This method passes the `no_annotations` and `no_record` parameters to the API.
-    fn forward(&self, place: &str) -> reqwest::Result<Vec<Point<T>>> {
+    fn forward(&self, place: &str) -> Result<Vec<Point<T>>, Error> {
         let mut resp = self
             .client
             .get(&self.endpoint)
@@ -246,13 +287,17 @@ where
                 (&"key", &self.api_key),
                 (&"no_annotations", &String::from("1")),
                 (&"no_record", &String::from("1")),
-            ]).send()?
+            ])
+            .send()?
             .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
-        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+        if let Some(headers) = resp.headers().get::<_>(XRL) {
             let mut lock = self.remaining.try_lock();
             if let Ok(ref mut mutex) = lock {
-                **mutex = Some(**headers)
+                // not ideal, but typed headers are currently impossible in 0.9.x
+                let h = headers.to_str()?;
+                let h: i32 = h.parse()?;
+                **mutex = Some(h)
             }
         }
         Ok(res
@@ -450,7 +495,7 @@ where
 /// Currency metadata
 #[derive(Debug, Deserialize)]
 pub struct Currency {
-    pub alternate_symbols: Vec<String>,
+    pub alternate_symbols: Option<Vec<String>>,
     pub decimal_mark: String,
     pub html_entity: String,
     pub iso_code: String,
@@ -478,6 +523,7 @@ pub struct Timezone {
     pub now_in_dst: i16,
     pub offset_sec: i32,
     pub offset_string: i32,
+    #[serde(with = "string_or_int")]
     pub short_name: String,
 }
 
@@ -489,11 +535,11 @@ pub struct Status {
 }
 
 /// Timestamp metadata
-// TODO: could this be represented as something less naive?
 #[derive(Debug, Deserialize)]
 pub struct Timestamp {
     pub created_http: String,
-    pub created_unix: i64,
+    #[serde(deserialize_with = "from_ts")]
+    pub created_unix: NaiveDateTime,
 }
 
 /// Bounding-box metadata
@@ -508,9 +554,9 @@ where
 
 /// Used to specify a bounding box to search within when forward-geocoding
 ///
-/// - `minimum` refers to the **bottom-left** or **south-west** corner of the bouding box
+/// - `minimum` refers to the **bottom-left** or **south-west** corner of the bounding box
 /// - `maximum` refers to the **top-right** or **north-east** corner of the bounding box.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct InputBounds<T>
 where
     T: Float,
@@ -519,12 +565,30 @@ where
     pub maximum_lonlat: Point<T>,
 }
 
+impl<T> InputBounds<T>
+where
+    T: Float
+{
+    /// Create a new `InputBounds` struct by passing 2 `Point`s defining:
+    /// - minimum (bottom-left) longitude and latitude coordinates
+    /// - maximum (top-right) longitude and latitude coordinates
+    pub fn new<U>(minimum_lonlat: U, maximum_lonlat: U) -> InputBounds<T>
+    where
+        U: Into<Point<T>>
+    {
+        InputBounds {
+            minimum_lonlat: minimum_lonlat.into(),
+            maximum_lonlat: maximum_lonlat.into()
+        }
+    }
+}
+
 /// Convert borrowed input bounds into the correct String representation
-impl<'a, T> From<&'a InputBounds<T>> for String
+impl<T> From<InputBounds<T>> for String
 where
     T: Float,
 {
-    fn from(ip: &InputBounds<T>) -> String {
+    fn from(ip: InputBounds<T>) -> String {
         // OpenCage expects lon, lat order here, for some reason
         format!(
             "{},{},{},{}",
@@ -533,19 +597,6 @@ where
             ip.maximum_lonlat.x().to_f64().unwrap().to_string(),
             ip.maximum_lonlat.y().to_f64().unwrap().to_string()
         )
-    }
-}
-
-/// Convert a tuple of Points into search bounds
-impl<T> From<(Point<T>, Point<T>)> for InputBounds<T>
-where
-    T: Float,
-{
-    fn from(t: (Point<T>, Point<T>)) -> InputBounds<T> {
-        InputBounds {
-            minimum_lonlat: t.0,
-            maximum_lonlat: t.1,
-        }
     }
 }
 
@@ -588,11 +639,37 @@ mod test {
     fn forward_full_test() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
         let address = "UCL CASA";
-        let bbox = (
+        let bbox = InputBounds {
+            minimum_lonlat: Point::new(-0.13806939125061035, 51.51989264641164),
+            maximum_lonlat: Point::new(-0.13427138328552246, 51.52319711775629),
+        };
+        let res = oc.forward_full(&address, bbox).unwrap();
+        let first_result = &res.results[0];
+        assert_eq!(
+            first_result.formatted,
+            "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom"
+        );
+    }
+    #[test]
+    fn forward_full_test_floats() {
+        let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+        let address = "UCL CASA";
+        let bbox = InputBounds::new(
             Point::new(-0.13806939125061035, 51.51989264641164),
             Point::new(-0.13427138328552246, 51.52319711775629),
         );
-        let res = oc.forward_full(&address, &Some(bbox.into())).unwrap();
+        let res = oc.forward_full(&address, bbox).unwrap();
+        let first_result = &res.results[0];
+        assert_eq!(
+            first_result.formatted,
+            "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom"
+        );
+    }
+    #[test]
+    fn forward_full_test_nobox() {
+        let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+        let address = "UCL CASA";
+        let res = oc.forward_full(&address, NOBOX).unwrap();
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
