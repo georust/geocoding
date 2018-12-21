@@ -58,7 +58,7 @@ mod string_or_int {
 
 // OpenCage has a custom rate-limit header, indicating remaining calls
 // header! { (XRatelimitRemaining, "X-RateLimit-Remaining") => [i32] }
-static XRL: &'static str = "x-ratelimit-remaining";
+static XRL: &str = "x-ratelimit-remaining";
 /// Use this constant if you don't need to restrict a `forward_full` call with a bounding box
 pub static NOBOX: Option<InputBounds<f64>> = None::<InputBounds<f64>>;
 
@@ -198,14 +198,14 @@ impl Opencage {
     /// ```
     ///
     /// ```
-    /// // There are several ways to construct a Point – the Turbofish is necessary
+    /// // There are several ways to construct a Point, such as from a tuple
     /// use geocoding::{Opencage, Point};
     /// use geocoding::opencage::InputBounds;
     /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
     /// let address = "UCL CASA";
-    /// let bbox = InputBounds::new::<Point<f64>>(
-    ///     (-0.13806939125061035, 51.51989264641164).into(),
-    ///     (-0.13427138328552246, 51.52319711775629).into(),
+    /// let bbox = InputBounds::new(
+    ///     (-0.13806939125061035, 51.51989264641164),
+    ///     (-0.13427138328552246, 51.52319711775629),
     /// );
     /// let res = oc.forward_full(&address, bbox).unwrap();
     /// let first_result = &res.results[0];
@@ -715,9 +715,9 @@ mod test {
     fn forward_full_test_pointinto() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
         let address = "UCL CASA";
-        let bbox = InputBounds::new::<Point<f64>>(
-            (-0.13806939125061035, 51.51989264641164).into(),
-            (-0.13427138328552246, 51.52319711775629).into(),
+        let bbox = InputBounds::new(
+            (-0.13806939125061035, 51.51989264641164),
+            (-0.13427138328552246, 51.52319711775629),
         );
         let res = oc.forward_full(&address, bbox).unwrap();
         let first_result = &res.results[0];
