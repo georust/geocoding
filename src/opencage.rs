@@ -144,7 +144,7 @@ impl Opencage {
     /// let res = oc.forward_full(&address, &Some(bbox.into())).unwrap();
     /// let first_result = &res.results[0];
     /// // the first result is correct
-    /// assert_eq!(first_result.formatted, "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom");
+    /// assert_eq!(first_result.formatted, "UCL, 188 Tottenham Court Road, London W1T 7PE, United Kingdom");
     ///```
     pub fn forward_full<T>(
         &self,
@@ -596,7 +596,7 @@ mod test {
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London WC1E 6BT, United Kingdom"
+            "UCL, 188 Tottenham Court Road, London W1T 7PE, United Kingdom"
         );
     }
 }
