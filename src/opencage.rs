@@ -23,6 +23,7 @@
 //! // "Carrer de Calatrava, 68, 08017 Barcelona, Spain"
 //! println!("{:?}", res.unwrap());
 //! ```
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 use super::num_traits::Float;
@@ -36,33 +37,48 @@ use super::{header, Client};
 use super::Point;
 use super::{Forward, Reverse};
 
-// OpenCage has a custom rate-limit header, indicating remaining calls
-header! { (XRatelimitRemaining, "X-RateLimit-Remaining") => [i32] }
-
 /// An instance of the Opencage Geocoding service
 pub struct Opencage {
     api_key: String,
     client: Client,
     endpoint: String,
+    ratelimit_remaining_hdr: header::HeaderName,
     remaining: Arc<Mutex<Option<i32>>>,
 }
 
 impl Opencage {
     /// Create a new OpenCage geocoding instance
     pub fn new(api_key: String) -> Self {
-        let mut headers = header::Headers::new();
-        headers.set(header::UserAgent::new(UA_STRING));
+        let mut headers = header::HeaderMap::new();
+        headers.insert(
+            header::USER_AGENT,
+            header::HeaderValue::from_static(UA_STRING),
+        );
         let client = Client::builder()
             .default_headers(headers)
             .build()
             .expect("Couldn't build a client!");
+        // OpenCage has a custom rate-limit header, indicating remaining calls
+        let ratelimit_remaining_hdr = header::HeaderName::from_static("x-ratelimit-remaining");
         Opencage {
             api_key,
             client,
             endpoint: "https://api.opencagedata.com/geocode/v1/json".to_string(),
+            ratelimit_remaining_hdr,
             remaining: Arc::new(Mutex::new(None)),
         }
     }
+
+    fn try_parse_ratelimit_remaining(&self, headers: &header::HeaderMap) -> Option<i32> {
+        headers.get(&self.ratelimit_remaining_hdr).and_then(|val| {
+            val.to_str()
+                .map_err(|_| ())
+                .and_then(|val| i32::from_str(val).map_err(|_| ()))
+                .map(Option::Some)
+                .unwrap_or(None)
+        })
+    }
+
     /// Retrieve the remaining API calls in your daily quota
     ///
     /// Initially, this value is `None`. Any OpenCage API call using a "Free Tier" key
@@ -110,14 +126,15 @@ impl Opencage {
                 (&"key", &self.api_key),
                 (&"no_annotations", &String::from("0")),
                 (&"no_record", &String::from("1")),
-            ]).send()?
+            ])
+            .send()?
             .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
-        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+        if let Some(remaining) = self.try_parse_ratelimit_remaining(resp.headers()) {
             let mut lock = self.remaining.try_lock();
             if let Ok(ref mut mutex) = lock {
-                **mutex = Some(**headers)
+                **mutex = Some(remaining)
             }
         }
         Ok(res)
@@ -177,10 +194,10 @@ impl Opencage {
             .send()?
             .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
-        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+        if let Some(remaining) = self.try_parse_ratelimit_remaining(resp.headers()) {
             let mut lock = self.remaining.try_lock();
             if let Ok(ref mut mutex) = lock {
-                **mutex = Some(**headers)
+                **mutex = Some(remaining)
             }
         }
         Ok(res)
@@ -213,15 +230,16 @@ where
                 (&"key", &self.api_key),
                 (&"no_annotations", &String::from("1")),
                 (&"no_record", &String::from("1")),
-            ]).send()?
+            ])
+            .send()?
             .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
         let address = &res.results[0];
-        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+        if let Some(remaining) = self.try_parse_ratelimit_remaining(resp.headers()) {
             let mut lock = self.remaining.try_lock();
             if let Ok(ref mut mutex) = lock {
-                **mutex = Some(**headers)
+                **mutex = Some(remaining)
             }
         }
         Ok(address.formatted.to_string())
@@ -246,13 +264,14 @@ where
                 (&"key", &self.api_key),
                 (&"no_annotations", &String::from("1")),
                 (&"no_record", &String::from("1")),
-            ]).send()?
+            ])
+            .send()?
             .error_for_status()?;
         let res: OpencageResponse<T> = resp.json()?;
-        if let Some(headers) = resp.headers().get::<XRatelimitRemaining>() {
+        if let Some(remaining) = self.try_parse_ratelimit_remaining(resp.headers()) {
             let mut lock = self.remaining.try_lock();
             if let Ok(ref mut mutex) = lock {
-                **mutex = Some(**headers)
+                **mutex = Some(remaining)
             }
         }
         Ok(res

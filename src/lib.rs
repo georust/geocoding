@@ -19,17 +19,11 @@ pub use geo_types::Point;
 extern crate num_traits;
 use num_traits::Float;
 
-#[macro_use]
-extern crate serde_derive;
-
 extern crate serde;
 use serde::Deserialize;
 
 extern crate reqwest;
 use reqwest::{header, Client};
-
-#[macro_use]
-extern crate hyper;
 
 // The OpenCage geocoding provider
 pub mod opencage;
