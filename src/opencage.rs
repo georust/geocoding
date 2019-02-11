@@ -35,13 +35,17 @@ use serde::Deserialize;
 
 use super::{Forward, Point, Reverse, UA_STRING};
 
+const ENDPOINT: &str = "https://api.opencagedata.com/geocode/v1/json";
+
+const X_RATELIMIT_REMAINING: &str = "x-ratelimit-remaining";
+
 /// An instance of the Opencage Geocoding service
 pub struct Opencage {
     api_key: String,
     client: Client,
     endpoint: String,
+    remaining_calls: Arc<Mutex<Option<i32>>>,
     ratelimit_remaining_hdr: header::HeaderName,
-    remaining: Arc<Mutex<Option<i32>>>,
 }
 
 impl Opencage {
@@ -56,19 +60,20 @@ impl Opencage {
             .default_headers(headers)
             .build()
             .expect("Couldn't build a client!");
-        // OpenCage has a custom rate-limit header, indicating remaining calls
-        let ratelimit_remaining_hdr = header::HeaderName::from_static("x-ratelimit-remaining");
         Opencage {
             api_key,
             client,
-            endpoint: "https://api.opencagedata.com/geocode/v1/json".to_string(),
-            ratelimit_remaining_hdr,
-            remaining: Arc::new(Mutex::new(None)),
+            endpoint: ENDPOINT.to_string(),
+            remaining_calls: Default::default(),
+            // OpenCage has a custom rate-limit header, indicating remaining calls
+            // TODO: Create custom header name through a `const fn`
+            // See also: https://github.com/hyperium/headers/issues/29#issuecomment-447970584
+            ratelimit_remaining_hdr: header::HeaderName::from_static(X_RATELIMIT_REMAINING),
         }
     }
 
-    fn try_parse_ratelimit_remaining(&self, headers: &header::HeaderMap) -> Option<i32> {
-        headers.get(&self.ratelimit_remaining_hdr).and_then(|val| {
+    fn try_parse_remaining_calls(&self, resp_headers: &header::HeaderMap) -> Option<i32> {
+        resp_headers.get(&self.ratelimit_remaining_hdr).and_then(|val| {
             val.to_str()
                 .map_err(|_| ())
                 .and_then(|val| i32::from_str(val).map_err(|_| ()))
@@ -77,13 +82,22 @@ impl Opencage {
         })
     }
 
+    fn adjust_remaining_calls(&self, resp_headers: &header::HeaderMap) {
+        if let Some(remaining_calls) = self.try_parse_remaining_calls(resp_headers) {
+            let mut lock = self.remaining_calls.try_lock();
+            if let Ok(ref mut mutex) = lock {
+                **mutex = Some(remaining_calls)
+            }
+        }
+    }
+
     /// Retrieve the remaining API calls in your daily quota
     ///
     /// Initially, this value is `None`. Any OpenCage API call using a "Free Tier" key
     /// will update this value to reflect the remaining quota for the API key.
     /// See the [API docs](https://opencagedata.com/api#rate-limiting) for details.
     pub fn remaining_calls(&self) -> Option<i32> {
-        *self.remaining.lock().unwrap()
+        *self.remaining_calls.lock().unwrap()
     }
     /// A reverse lookup of a point, returning an annotated response.
     ///
@@ -127,15 +141,8 @@ impl Opencage {
             ])
             .send()?
             .error_for_status()?;
-        let res: OpencageResponse<T> = resp.json()?;
-        // it's OK to index into this vec, because reverse-geocoding only returns a single result
-        if let Some(remaining) = self.try_parse_ratelimit_remaining(resp.headers()) {
-            let mut lock = self.remaining.try_lock();
-            if let Ok(ref mut mutex) = lock {
-                **mutex = Some(remaining)
-            }
-        }
-        Ok(res)
+        self.adjust_remaining_calls(resp.headers());
+        resp.json()
     }
     /// A forward-geocoding lookup of an address, returning an annotated response.
     ///
@@ -191,14 +198,8 @@ impl Opencage {
             .query(&query)
             .send()?
             .error_for_status()?;
-        let res: OpencageResponse<T> = resp.json()?;
-        if let Some(remaining) = self.try_parse_ratelimit_remaining(resp.headers()) {
-            let mut lock = self.remaining.try_lock();
-            if let Ok(ref mut mutex) = lock {
-                **mutex = Some(remaining)
-            }
-        }
-        Ok(res)
+        self.adjust_remaining_calls(resp.headers());
+        resp.json()
     }
 }
 
@@ -231,15 +232,10 @@ where
             ])
             .send()?
             .error_for_status()?;
+        self.adjust_remaining_calls(resp.headers());
         let res: OpencageResponse<T> = resp.json()?;
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
         let address = &res.results[0];
-        if let Some(remaining) = self.try_parse_ratelimit_remaining(resp.headers()) {
-            let mut lock = self.remaining.try_lock();
-            if let Ok(ref mut mutex) = lock {
-                **mutex = Some(remaining)
-            }
-        }
         Ok(address.formatted.to_string())
     }
 }
@@ -265,13 +261,8 @@ where
             ])
             .send()?
             .error_for_status()?;
+        self.adjust_remaining_calls(resp.headers());
         let res: OpencageResponse<T> = resp.json()?;
-        if let Some(remaining) = self.try_parse_ratelimit_remaining(resp.headers()) {
-            let mut lock = self.remaining.try_lock();
-            if let Ok(ref mut mutex) = lock {
-                **mutex = Some(remaining)
-            }
-        }
         Ok(res
             .results
             .iter()
