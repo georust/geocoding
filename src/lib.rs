@@ -13,17 +13,10 @@
 //! and returns data in that order.
 //!
 static UA_STRING: &'static str = "Rust-Geocoding";
-extern crate geo_types;
+
 pub use geo_types::Point;
 
-extern crate num_traits;
 use num_traits::Float;
-
-extern crate serde;
-use serde::Deserialize;
-
-extern crate reqwest;
-use reqwest::{header, Client};
 
 // The OpenCage geocoding provider
 pub mod opencage;

@@ -23,19 +23,17 @@
 //! // "Carrer de Calatrava, 68, 08017 Barcelona, Spain"
 //! println!("{:?}", res.unwrap());
 //! ```
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::HashMap,
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 
-use super::num_traits::Float;
-use std::collections::HashMap;
+use num_traits::Float;
+use reqwest::{header, Client};
+use serde::Deserialize;
 
-use super::reqwest;
-use super::Deserialize;
-use super::UA_STRING;
-use super::{header, Client};
-
-use super::Point;
-use super::{Forward, Reverse};
+use super::{Forward, Point, Reverse, UA_STRING};
 
 /// An instance of the Opencage Geocoding service
 pub struct Opencage {
