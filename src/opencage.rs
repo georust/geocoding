@@ -31,7 +31,7 @@ use std::collections::HashMap;
 use super::reqwest;
 use super::Deserialize;
 use super::UA_STRING;
-use super::{header, Client};
+use super::{header, Client, Proxy};
 
 use super::Point;
 use super::{Forward, Reverse};
@@ -48,12 +48,25 @@ pub struct Opencage {
 }
 
 impl Opencage {
-    /// Create a new OpenCage geocoding instance
+
+    /// Create a new OpenCage geocoding
     pub fn new(api_key: String) -> Self {
+        Opencage::new_with_proxy(api_key, None)
+    }
+
+    /// Create a new OpenCage geocoding instance with a proxy instance
+    pub fn new_with_proxy(api_key: String, proxy: Option<Proxy>) -> Self {
         let mut headers = header::Headers::new();
         headers.set(header::UserAgent::new(UA_STRING));
-        let client = Client::builder()
-            .default_headers(headers)
+        let mut client_builder = Client::builder();
+            
+            client_builder.default_headers(headers);
+
+            if let Some(proxy) = proxy {
+                client_builder.proxy(proxy);
+            }
+
+            let client = client_builder
             .build()
             .expect("Couldn't build a client!");
         Opencage {
