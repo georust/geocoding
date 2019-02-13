@@ -6,34 +6,29 @@
 //! As this is the lowest common denominator reverse-geocoding result.
 //! Individual providers may implement additional methods, which return more
 //! finely-structured and/or extensive data, and enable more specific query tuning.
+//! Coordinate data are specified using the [`Point`](struct.Point.html) struct, which has several
+//! convenient `From` implementations to allow for easy construction using primitive types.
+//!
 //! ### A note on Coordinate Order
 //! While individual providers may specify coordinates in either `[Longitude, Latitude]` **or**
 //! `[Latitude, Longitude`] order,
-//! `Geocoding` **always** requires `Point` data in `[Longitude, Latitude]` (`x, y`) order,
+//! `Geocoding` **always** requires [`Point`](struct.Point.html) data in `[Longitude, Latitude]` (`x, y`) order,
 //! and returns data in that order.
 //!
 static UA_STRING: &'static str = "Rust-Geocoding";
-extern crate geo_types;
+
+use chrono;
+use failure::Error;
 pub use geo_types::Point;
-
-extern crate num_traits;
 use num_traits::Float;
-
-#[macro_use]
-extern crate serde_derive;
-
-extern crate serde;
-use serde::Deserialize;
-
-extern crate reqwest;
-use reqwest::{header, Client};
-
-#[macro_use]
-extern crate hyper;
+use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
+use reqwest::Client;
+use serde::{Deserialize, Deserializer};
+use serde_derive::Deserialize;
 
 // The OpenCage geocoding provider
 pub mod opencage;
-pub use opencage::Opencage;
+pub use crate::opencage::Opencage;
 
 /// Reverse-geocode a coordinate.
 ///
@@ -61,7 +56,7 @@ where
     // NOTE TO IMPLEMENTERS: Point coordinates are lon, lat (x, y)
     // You may have to provide these coordinates in reverse order,
     // depending on the provider's requirements (see e.g. OpenCage)
-    fn reverse(&self, point: &Point<T>) -> reqwest::Result<String>;
+    fn reverse(&self, point: &Point<T>) -> Result<String, Error>;
 }
 
 /// Forward-geocode a coordinate.
@@ -94,5 +89,5 @@ where
     // NOTE TO IMPLEMENTERS: while returned provider point data may not be in
     // lon, lat (x, y) order, Geocoding requires this order in its output Point
     // data. Please pay attention when using returned data to construct Points
-    fn forward(&self, address: &str) -> reqwest::Result<Vec<Point<T>>>;
+    fn forward(&self, address: &str) -> Result<Vec<Point<T>>, Error>;
 }
