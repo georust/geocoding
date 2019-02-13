@@ -26,7 +26,7 @@ extern crate serde;
 use serde::Deserialize;
 
 extern crate reqwest;
-use reqwest::{header, Client};
+use reqwest::{header, Client, Proxy};
 
 #[macro_use]
 extern crate hyper;
