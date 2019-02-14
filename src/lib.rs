@@ -24,7 +24,6 @@ use num_traits::Float;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::Client;
 use serde::{Deserialize, Deserializer};
-use serde_derive::Deserialize;
 
 // The OpenCage geocoding provider
 pub mod opencage;
