@@ -495,7 +495,7 @@ where
     T: Float,
 {
     pub annotations: Option<Annotations<T>>,
-    pub bounds: Bounds<T>,
+    pub bounds: Option<Bounds<T>>,
     pub components: HashMap<String, String>,
     pub confidence: i8,
     pub formatted: String,
