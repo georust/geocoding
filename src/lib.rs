@@ -37,14 +37,13 @@ pub use crate::opencage::Opencage;
 /// Examples
 ///
 /// ```
-/// use geocoding::Point;
-/// use geocoding::Reverse;
-/// use geocoding::Opencage;
+/// use geocoding::{Opencage, Point, Reverse};
+///
 /// let p = Point::new(2.12870, 41.40139);
 /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
-/// let res = oc.reverse(&p);
+/// let res = oc.reverse(&p).unwrap();
 /// assert_eq!(
-///     res.unwrap(),
+///     res,
 ///     "Carrer de Calatrava, 68, 08017 Barcelona, Spain"
 /// );
 /// ```
@@ -66,15 +65,13 @@ where
 /// Examples
 ///
 /// ```
-/// use geocoding::Point;
-/// use geocoding::Forward;
-/// use geocoding::Opencage;
-/// let p = Point::new(2.12870, 41.40139);
+/// use geocoding::{Forward, Opencage, Point};
+///
 /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
 /// let address = "Schwabing, München";
-/// let res = oc.forward(&address);
+/// let res: Vec<Point<f64>> = oc.forward(address).unwrap();
 /// assert_eq!(
-///     res.unwrap(),
+///     res,
 ///     vec![
 ///         Point::new(11.5761796, 48.1599218),
 ///         Point::new(11.57583, 48.1608265)
