@@ -530,7 +530,7 @@ pub struct Currency {
     pub decimal_mark: String,
     pub html_entity: String,
     pub iso_code: String,
-    pub iso_numeric: i16,
+    pub iso_numeric: String,
     pub name: String,
     pub smallest_denomination: i16,
     pub subunit: String,
@@ -553,7 +553,7 @@ pub struct Timezone {
     pub name: String,
     pub now_in_dst: i16,
     pub offset_sec: i32,
-    pub offset_string: i32,
+    pub offset_string: String,
     #[serde(with = "string_or_int")]
     pub short_name: String,
 }
