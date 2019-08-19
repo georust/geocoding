@@ -19,7 +19,7 @@ static UA_STRING: &'static str = "Rust-Geocoding";
 
 use chrono;
 use failure::Error;
-pub use geo_types::Point;
+pub use geo_types::{Coordinate, Point};
 use num_traits::Float;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::Client;
