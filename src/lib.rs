@@ -29,6 +29,10 @@ use serde::{Deserialize, Deserializer};
 pub mod opencage;
 pub use crate::opencage::Opencage;
 
+// The OpenStreetMap Nominatim geocoding provider
+pub mod openstreetmap;
+pub use crate::openstreetmap::Openstreetmap;
+
 /// Reverse-geocode a coordinate.
 ///
 /// This trait represents the most simple and minimal implementation
