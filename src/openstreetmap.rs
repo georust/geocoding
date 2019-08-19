@@ -13,7 +13,7 @@
 //!
 //! let osm = Openstreetmap::new();
 //! let address = "Schwabing, München";
-//! let res = oc.forward(&address);
+//! let res = osm.forward(&address);
 //! assert_eq!(res.unwrap(), vec![Point::new(11.5761796, 48.1599218)]);
 //! ```
 use crate::Deserialize;
@@ -49,7 +49,8 @@ where
     /// # Example:
     ///
     /// ```
-    /// use geocoding::{Openstreetmap, OpenstreetmapParams, InputBounds, Point};
+    /// use geocoding::{Openstreetmap, InputBounds, Point};
+    /// use geocoding::openstreetmap::{OpenstreetmapParams};
     ///
     /// let viewbox = InputBounds::new(
     ///     (-0.13806939125061035, 51.51989264641164),
@@ -125,7 +126,8 @@ impl Openstreetmap {
     /// # Examples
     ///
     /// ```
-    /// use geocoding::{Openstreetmap, OpenstreetmapParams, InputBounds, Point};
+    /// use geocoding::{Openstreetmap, InputBounds, Point};
+    /// use geocoding::openstreetmap::{OpenstreetmapParams, OpenstreetmapResponse};
     ///
     /// let osm = Openstreetmap::new();
     /// let viewbox = InputBounds::new(
@@ -283,9 +285,9 @@ pub struct OpenstreetmapResponse<T>
 where
     T: Float,
 {
-    r#type: String,
-    licence: String,
-    features: Vec<OpenstreetmapResult<T>>,
+    pub r#type: String,
+    pub licence: String,
+    pub features: Vec<OpenstreetmapResult<T>>,
 }
 
 /// A geocoding result
@@ -303,32 +305,32 @@ where
 /// Geocoding result properties
 #[derive(Clone, Debug, Deserialize)]
 pub struct ResultProperties {
-    place_id: u64,
-    osm_type: String,
-    osm_id: u64,
-    display_name: String,
-    place_rank: u64,
-    category: String,
-    r#type: String,
-    importance: f64,
-    address: Option<AddressDetails>,
+    pub place_id: u64,
+    pub osm_type: String,
+    pub osm_id: u64,
+    pub display_name: String,
+    pub place_rank: u64,
+    pub category: String,
+    pub r#type: String,
+    pub importance: f64,
+    pub address: Option<AddressDetails>,
 }
 
 /// Address details in the result object
 #[derive(Clone, Debug, Deserialize)]
 pub struct AddressDetails {
-    city: Option<String>,
-    city_district: Option<String>,
-    construction: Option<String>,
-    continent: Option<String>,
-    country: Option<String>,
-    country_code: Option<String>,
-    house_number: Option<String>,
-    neighbourhood: Option<String>,
-    postcode: Option<String>,
-    public_building: Option<String>,
-    state: Option<String>,
-    suburb: Option<String>,
+    pub city: Option<String>,
+    pub city_district: Option<String>,
+    pub construction: Option<String>,
+    pub continent: Option<String>,
+    pub country: Option<String>,
+    pub country_code: Option<String>,
+    pub house_number: Option<String>,
+    pub neighbourhood: Option<String>,
+    pub postcode: Option<String>,
+    pub public_building: Option<String>,
+    pub state: Option<String>,
+    pub suburb: Option<String>,
 }
 
 /// A geocoding result geometry
@@ -337,8 +339,8 @@ pub struct ResultGeometry<T>
 where
     T: Float,
 {
-    r#type: String,
-    coordinates: (T, T),
+    pub r#type: String,
+    pub coordinates: (T, T),
 }
 
 #[cfg(test)]
