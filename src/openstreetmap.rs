@@ -17,6 +17,7 @@
 //! assert_eq!(res.unwrap(), vec![Point::new(11.5761796, 48.1599218)]);
 //! ```
 use crate::Deserialize;
+use crate::InputBounds;
 use crate::Point;
 use crate::UA_STRING;
 use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
@@ -31,30 +32,35 @@ pub struct Openstreetmap {
 }
 
 /// An instance of a parameter builder for Openstreetmap geocoding
-pub struct OpenstreetmapParams<'a> {
+pub struct OpenstreetmapParams<'a, T>
+where
+    T: Float,
+{
     query: &'a str,
     addressdetails: &'a bool,
-    viewbox: Option<&'a [f64; 4]>,
+    viewbox: Option<&'a InputBounds<T>>,
 }
 
-impl<'a> OpenstreetmapParams<'a> {
+impl<'a, T> OpenstreetmapParams<'a, T>
+where
+    T: Float,
+{
     /// Create a new OpenStreetMap parameter builder
     /// # Example:
     ///
     /// ```
-    /// use geocoding::{Openstreetmap, OpenstreetmapParams, Point};
+    /// use geocoding::{Openstreetmap, OpenstreetmapParams, InputBounds, Point};
     ///
+    /// let viewbox = InputBounds::new(
+    ///     (-0.13806939125061035, 51.51989264641164),
+    ///     (-0.13427138328552246, 51.52319711775629),
+    /// );
     /// let params = OpenstreetmapParams::new(&"UCL CASA")
     ///     .with_addressdetails(&true)
-    ///     .with_viewbox(&[
-    ///         -0.13806939125061035,
-    ///         51.51989264641164,
-    ///         -0.13427138328552246,
-    ///         51.52319711775629,
-    ///     ])
+    ///     .with_viewbox(&viewbox)
     ///     .build();
     /// ```
-    pub fn new(query: &'a str) -> OpenstreetmapParams<'a> {
+    pub fn new(query: &'a str) -> OpenstreetmapParams<'a, T> {
         OpenstreetmapParams {
             query,
             addressdetails: &false,
@@ -69,13 +75,13 @@ impl<'a> OpenstreetmapParams<'a> {
     }
 
     /// Set the `viewbox` property
-    pub fn with_viewbox(&mut self, viewbox: &'a [f64; 4]) -> &mut Self {
+    pub fn with_viewbox(&mut self, viewbox: &'a InputBounds<T>) -> &mut Self {
         self.viewbox = Some(viewbox);
         self
     }
 
     /// Build and return an instance of OpenstreetmapParams
-    pub fn build(&self) -> OpenstreetmapParams<'a> {
+    pub fn build(&self) -> OpenstreetmapParams<'a, T> {
         OpenstreetmapParams {
             query: self.query,
             addressdetails: self.addressdetails,
@@ -112,17 +118,16 @@ impl Openstreetmap {
     /// # Examples
     ///
     /// ```
-    /// use geocoding::{Openstreetmap, OpenstreetmapParams, Point};
+    /// use geocoding::{Openstreetmap, OpenstreetmapParams, InputBounds, Point};
     ///
     /// let osm = Openstreetmap::new();
+    /// let viewbox = InputBounds::new(
+    ///     (-0.13806939125061035, 51.51989264641164),
+    ///     (-0.13427138328552246, 51.52319711775629),
+    /// );
     /// let params = OpenstreetmapParams::new(&"UCL CASA")
     ///     .with_addressdetails(&true)
-    ///     .with_viewbox(&[
-    ///         -0.13806939125061035,
-    ///         51.51989264641164,
-    ///         -0.13427138328552246,
-    ///         51.52319711775629,
-    ///     ])
+    ///     .with_viewbox(&viewbox)
     ///     .build();
     /// let res: OpenstreetmapResponse<f64> = osm.forward_full(&params).unwrap();
     /// let result = res.features[0].properties.clone();
@@ -133,7 +138,7 @@ impl Openstreetmap {
     /// ```
     pub fn forward_full<T>(
         &self,
-        params: &OpenstreetmapParams,
+        params: &OpenstreetmapParams<T>,
     ) -> Result<OpenstreetmapResponse<T>, Error>
     where
         T: Float,
@@ -151,11 +156,7 @@ impl Openstreetmap {
         ];
 
         if let Some(vb) = params.viewbox {
-            viewbox = vb
-                .iter()
-                .map(|f| f.to_string())
-                .collect::<Vec<String>>()
-                .join(",");
+            viewbox = String::from(*vb);
             query.push((&"viewbox", &viewbox));
         }
 
@@ -340,14 +341,13 @@ mod test {
     #[test]
     fn forward_full_test() {
         let osm = Openstreetmap::new();
+        let viewbox = InputBounds::new(
+            (-0.13806939125061035, 51.51989264641164),
+            (-0.13427138328552246, 51.52319711775629),
+        );
         let params = OpenstreetmapParams::new(&"UCL CASA")
             .with_addressdetails(&true)
-            .with_viewbox(&[
-                -0.13806939125061035,
-                51.51989264641164,
-                -0.13427138328552246,
-                51.52319711775629,
-            ])
+            .with_viewbox(&viewbox)
             .build();
         let res: OpenstreetmapResponse<f64> = osm.forward_full(&params).unwrap();
         let result = res.features[0].properties.clone();

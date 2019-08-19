@@ -26,6 +26,7 @@
 use crate::chrono::naive::serde::ts_seconds::deserialize as from_ts;
 use crate::chrono::NaiveDateTime;
 use crate::Deserialize;
+use crate::InputBounds;
 use crate::Point;
 use crate::UA_STRING;
 use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
@@ -166,8 +167,7 @@ impl Opencage {
     /// # Examples
     ///
     ///```
-    /// use geocoding::{Opencage, Point};
-    /// use geocoding::opencage::InputBounds;
+    /// use geocoding::{Opencage, InputBounds, Point};
     ///
     /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
     /// let address = "UCL CASA";
@@ -185,8 +185,8 @@ impl Opencage {
     ///
     /// ```
     /// // You can pass NOBOX if you don't need bounds.
-    /// use geocoding::{Opencage, Point};
-    /// use geocoding::opencage::{InputBounds, NOBOX};
+    /// use geocoding::{Opencage, InputBounds, Point};
+    /// use geocoding::opencage::{NOBOX};
     /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
     /// let address = "UCL CASA";
     /// let res = oc.forward_full(&address, NOBOX).unwrap();
@@ -199,8 +199,7 @@ impl Opencage {
     ///
     /// ```
     /// // There are several ways to construct a Point, such as from a tuple
-    /// use geocoding::{Opencage, Point};
-    /// use geocoding::opencage::InputBounds;
+    /// use geocoding::{Opencage, InputBounds, Point};
     /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
     /// let address = "UCL CASA";
     /// let bbox = InputBounds::new(
@@ -581,54 +580,6 @@ where
 {
     pub northeast: HashMap<String, T>,
     pub southwest: HashMap<String, T>,
-}
-
-/// Used to specify a bounding box to search within when forward-geocoding
-///
-/// - `minimum` refers to the **bottom-left** or **south-west** corner of the bounding box
-/// - `maximum` refers to the **top-right** or **north-east** corner of the bounding box.
-#[derive(Copy, Clone, Debug)]
-pub struct InputBounds<T>
-where
-    T: Float,
-{
-    pub minimum_lonlat: Point<T>,
-    pub maximum_lonlat: Point<T>,
-}
-
-impl<T> InputBounds<T>
-where
-    T: Float,
-{
-    /// Create a new `InputBounds` struct by passing 2 `Point`s defining:
-    /// - minimum (bottom-left) longitude and latitude coordinates
-    /// - maximum (top-right) longitude and latitude coordinates
-    pub fn new<U>(minimum_lonlat: U, maximum_lonlat: U) -> InputBounds<T>
-    where
-        U: Into<Point<T>>,
-    {
-        InputBounds {
-            minimum_lonlat: minimum_lonlat.into(),
-            maximum_lonlat: maximum_lonlat.into(),
-        }
-    }
-}
-
-/// Convert borrowed input bounds into the correct String representation
-impl<T> From<InputBounds<T>> for String
-where
-    T: Float,
-{
-    fn from(ip: InputBounds<T>) -> String {
-        // OpenCage expects lon, lat order here, for some reason
-        format!(
-            "{},{},{},{}",
-            ip.minimum_lonlat.x().to_f64().unwrap().to_string(),
-            ip.minimum_lonlat.y().to_f64().unwrap().to_string(),
-            ip.maximum_lonlat.x().to_f64().unwrap().to_string(),
-            ip.maximum_lonlat.y().to_f64().unwrap().to_string()
-        )
-    }
 }
 
 #[cfg(test)]
