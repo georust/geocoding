@@ -19,7 +19,7 @@ static UA_STRING: &'static str = "Rust-Geocoding";
 
 use chrono;
 use failure::Error;
-pub use geo_types::Point;
+pub use geo_types::{Coordinate, Point};
 use num_traits::Float;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::Client;
@@ -69,17 +69,14 @@ where
 /// Examples
 ///
 /// ```
-/// use geocoding::{Forward, Opencage, Point};
+/// use geocoding::{Coordinate, Forward, Opencage, Point};
 ///
 /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
 /// let address = "Schwabing, München";
 /// let res: Vec<Point<f64>> = oc.forward(address).unwrap();
 /// assert_eq!(
 ///     res,
-///     vec![
-///         Point::new(11.5761796, 48.1599218),
-///         Point::new(11.57583, 48.1608265)
-///     ]
+///     vec![Point(Coordinate { x: 11.5761796, y: 48.1599218 })]
 /// );
 /// ```
 pub trait Forward<T>

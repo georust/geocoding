@@ -26,10 +26,10 @@
 use crate::chrono::naive::serde::ts_seconds::deserialize as from_ts;
 use crate::chrono::NaiveDateTime;
 use crate::Deserialize;
-use crate::InputBounds;
-use crate::Point;
 use crate::UA_STRING;
+use crate::InputBounds;
 use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
+use crate::Point;
 use crate::{Forward, Reverse};
 use failure::Error;
 use num_traits::Float;
@@ -180,7 +180,7 @@ impl Opencage {
     /// let res = oc.forward_full(&address, bbox).unwrap();
     /// let first_result = &res.results[0];
     /// // the first result is correct
-    /// assert_eq!(first_result.formatted, "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom");
+    /// assert_eq!(first_result.formatted, "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom");
     ///```
     ///
     /// ```
@@ -193,7 +193,7 @@ impl Opencage {
     /// let first_result = &res.results[0];
     /// assert_eq!(
     ///     first_result.formatted,
-    ///     "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
+    ///     "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
     /// );
     /// ```
     ///
@@ -210,7 +210,7 @@ impl Opencage {
     /// let first_result = &res.results[0];
     /// assert_eq!(
     ///     first_result.formatted,
-    ///     "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
+    ///     "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
     /// );
     /// ```
     pub fn forward_full<T, U>(&self, place: &str, bounds: U) -> Result<OpencageResponse<T>, Error>
@@ -529,7 +529,7 @@ pub struct Currency {
     pub decimal_mark: String,
     pub html_entity: String,
     pub iso_code: String,
-    pub iso_numeric: i16,
+    pub iso_numeric: String,
     pub name: String,
     pub smallest_denomination: i16,
     pub subunit: String,
@@ -552,7 +552,7 @@ pub struct Timezone {
     pub name: String,
     pub now_in_dst: i16,
     pub offset_sec: i32,
-    pub offset_string: i32,
+    pub offset_string: String,
     #[serde(with = "string_or_int")]
     pub short_name: String,
 }
@@ -585,6 +585,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::Coordinate;
 
     #[test]
     fn reverse_test() {
@@ -603,10 +604,7 @@ mod test {
         let res = oc.forward(&address);
         assert_eq!(
             res.unwrap(),
-            vec![
-                Point::new(11.5761796, 48.1599218),
-                Point::new(11.57583, 48.1608265)
-            ]
+            vec![Point(Coordinate { x: 11.5761796, y: 48.1599218 })]
         );
     }
     #[test]
@@ -629,7 +627,7 @@ mod test {
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
+            "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
         );
     }
     #[test]
@@ -644,7 +642,7 @@ mod test {
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
+            "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
         );
     }
     #[test]
@@ -659,7 +657,7 @@ mod test {
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
+            "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
         );
     }
     #[test]
@@ -674,7 +672,7 @@ mod test {
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
+            "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
         );
     }
     #[test]
@@ -685,7 +683,7 @@ mod test {
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
+            "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
         );
     }
 }
