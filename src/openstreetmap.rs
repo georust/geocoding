@@ -91,8 +91,15 @@ where
 }
 
 impl Openstreetmap {
-    /// Create a new Openstreetmap geocoding instance
+    /// Create a new Openstreetmap geocoding instance using the default endpoint
     pub fn new() -> Self {
+        Openstreetmap::new_with_endpoint("https://nominatim.openstreetmap.org/".to_string())
+    }
+
+    /// Create a new Openstreetmap geocoding instance with a custom endpoint.
+    ///
+    /// Endpoint should include a trailing slash (i.e. "https://nominatim.openstreetmap.org/")
+    pub fn new_with_endpoint(endpoint: String) -> Self {
         let mut headers = HeaderMap::new();
         headers.insert(USER_AGENT, HeaderValue::from_static(UA_STRING));
         let client = Client::builder()
@@ -101,7 +108,7 @@ impl Openstreetmap {
             .expect("Couldn't build a client!");
         Openstreetmap {
             client,
-            endpoint: "https://nominatim.openstreetmap.org/".to_string(),
+            endpoint: endpoint.to_string(),
         }
     }
 
@@ -337,6 +344,15 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn new_with_endpoint_forward_test() {
+        let osm =
+            Openstreetmap::new_with_endpoint("https://nominatim.openstreetmap.org/".to_string());
+        let address = "Schwabing, München";
+        let res = osm.forward(&address);
+        assert_eq!(res.unwrap(), vec![Point::new(11.5761796, 48.1599218)]);
+    }
 
     #[test]
     fn forward_full_test() {
