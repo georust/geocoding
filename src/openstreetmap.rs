@@ -37,7 +37,7 @@ where
     T: Float,
 {
     query: &'a str,
-    addressdetails: &'a bool,
+    addressdetails: bool,
     viewbox: Option<&'a InputBounds<T>>,
 }
 
@@ -57,20 +57,20 @@ where
     ///     (-0.13427138328552246, 51.52319711775629),
     /// );
     /// let params = OpenstreetmapParams::new(&"UCL CASA")
-    ///     .with_addressdetails(&true)
+    ///     .with_addressdetails(true)
     ///     .with_viewbox(&viewbox)
     ///     .build();
     /// ```
     pub fn new(query: &'a str) -> OpenstreetmapParams<'a, T> {
         OpenstreetmapParams {
             query,
-            addressdetails: &false,
+            addressdetails: false,
             viewbox: None,
         }
     }
 
     /// Set the `addressdetails` property
-    pub fn with_addressdetails(&mut self, addressdetails: &'a bool) -> &mut Self {
+    pub fn with_addressdetails(&mut self, addressdetails: bool) -> &mut Self {
         self.addressdetails = addressdetails;
         self
     }
@@ -135,7 +135,7 @@ impl Openstreetmap {
     ///     (-0.13427138328552246, 51.52319711775629),
     /// );
     /// let params = OpenstreetmapParams::new(&"UCL CASA")
-    ///     .with_addressdetails(&true)
+    ///     .with_addressdetails(true)
     ///     .with_viewbox(&viewbox)
     ///     .build();
     /// let res: OpenstreetmapResponse<f64> = osm.forward_full(&params).unwrap();
@@ -154,7 +154,7 @@ impl Openstreetmap {
         for<'de> T: Deserialize<'de>,
     {
         let format = String::from("geojson");
-        let addressdetails = String::from(if *params.addressdetails { "1" } else { "0" });
+        let addressdetails = String::from(if params.addressdetails { "1" } else { "0" });
         // For lifetime issues
         let viewbox;
 
@@ -177,6 +177,12 @@ impl Openstreetmap {
             .error_for_status()?;
         let res: OpenstreetmapResponse<T> = resp.json()?;
         Ok(res)
+    }
+}
+
+impl Default for Openstreetmap {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -364,7 +370,7 @@ mod test {
             (-0.13427138328552246, 51.52319711775629),
         );
         let params = OpenstreetmapParams::new(&"UCL CASA")
-            .with_addressdetails(&true)
+            .with_addressdetails(true)
             .with_viewbox(&viewbox)
             .build();
         let res: OpenstreetmapResponse<f64> = osm.forward_full(&params).unwrap();

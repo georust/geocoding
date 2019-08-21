@@ -26,10 +26,10 @@
 use crate::chrono::naive::serde::ts_seconds::deserialize as from_ts;
 use crate::chrono::NaiveDateTime;
 use crate::Deserialize;
-use crate::UA_STRING;
 use crate::InputBounds;
-use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
 use crate::Point;
+use crate::UA_STRING;
+use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
 use crate::{Forward, Reverse};
 use failure::Error;
 use num_traits::Float;
@@ -604,7 +604,10 @@ mod test {
         let res = oc.forward(&address);
         assert_eq!(
             res.unwrap(),
-            vec![Point(Coordinate { x: 11.5761796, y: 48.1599218 })]
+            vec![Point(Coordinate {
+                x: 11.5761796,
+                y: 48.1599218
+            })]
         );
     }
     #[test]
