@@ -15,7 +15,7 @@
 //! `Geocoding` **always** requires [`Point`](struct.Point.html) data in `[Longitude, Latitude]` (`x, y`) order,
 //! and returns data in that order.
 //!
-static UA_STRING: &'static str = "Rust-Geocoding";
+static UA_STRING: &str = "Rust-Geocoding";
 
 use chrono;
 use failure::Error;
