@@ -33,6 +33,10 @@ pub use crate::opencage::Opencage;
 pub mod openstreetmap;
 pub use crate::openstreetmap::Openstreetmap;
 
+// The GeoAdmin geocoding provider
+pub mod geoadmin;
+pub use crate::geoadmin::GeoAdmin;
+
 /// Reverse-geocode a coordinate.
 ///
 /// This trait represents the most simple and minimal implementation
@@ -48,7 +52,7 @@ pub use crate::openstreetmap::Openstreetmap;
 /// let res = oc.reverse(&p).unwrap();
 /// assert_eq!(
 ///     res,
-///     "Carrer de Calatrava, 68, 08017 Barcelona, Spain"
+///     Some("Carrer de Calatrava, 68, 08017 Barcelona, Spain".to_string())
 /// );
 /// ```
 pub trait Reverse<T>
@@ -58,7 +62,7 @@ where
     // NOTE TO IMPLEMENTERS: Point coordinates are lon, lat (x, y)
     // You may have to provide these coordinates in reverse order,
     // depending on the provider's requirements (see e.g. OpenCage)
-    fn reverse(&self, point: &Point<T>) -> Result<String, Error>;
+    fn reverse(&self, point: &Point<T>) -> Result<Option<String>, Error>;
 }
 
 /// Forward-geocode a coordinate.

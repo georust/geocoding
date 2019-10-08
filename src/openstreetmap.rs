@@ -219,7 +219,7 @@ where
     /// returned `String` can be found [here](https://nominatim.org/release-docs/develop/api/Reverse/)
     ///
     /// This method passes the `format` parameter to the API.
-    fn reverse(&self, point: &Point<T>) -> Result<String, Error> {
+    fn reverse(&self, point: &Point<T>) -> Result<Option<String>, Error> {
         let mut resp = self
             .client
             .get(&format!("{}reverse", self.endpoint))
@@ -232,7 +232,7 @@ where
             .error_for_status()?;
         let res: OpenstreetmapResponse<T> = resp.json()?;
         let address = &res.features[0];
-        Ok(address.properties.display_name.to_string())
+        Ok(Some(address.properties.display_name.to_string()))
     }
 }
 
@@ -397,7 +397,7 @@ mod test {
         let res = osm.reverse(&p);
         assert_eq!(
             res.unwrap(),
-            "68, Carrer de Calatrava, les Tres Torres, Sarrià - Sant Gervasi, Barcelona, BCN, CAT, 08017, España",
+            Some("68, Carrer de Calatrava, les Tres Torres, Sarrià - Sant Gervasi, Barcelona, BCN, CAT, 08017, España".to_string()),
         );
     }
 }
