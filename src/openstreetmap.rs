@@ -142,7 +142,7 @@ impl Openstreetmap {
     /// let result = res.features[0].properties.clone();
     /// assert_eq!(
     ///     result.display_name,
-    ///     "UCL, 188, Tottenham Court Road, Holborn, Bloomsbury, London Borough of Camden, London, Greater London, England, W1T 7PQ, UK",
+    ///     "University College London, Torrington Place, Holborn, Bloomsbury, London Borough of Camden, London, Greater London, England, WC1E 7LE, United Kingdom",
     /// );
     /// ```
     pub fn forward_full<T>(
@@ -377,7 +377,7 @@ mod test {
         let result = res.features[0].properties.clone();
         assert_eq!(
             result.display_name,
-            "UCL, 188, Tottenham Court Road, Holborn, Bloomsbury, London Borough of Camden, London, Greater London, England, W1T 7PQ, UK",
+            "University College London, Torrington Place, Holborn, Bloomsbury, London Borough of Camden, London, Greater London, England, WC1E 7LE, United Kingdom",
         );
         assert_eq!(result.address.unwrap().city.unwrap(), "London");
     }
@@ -397,7 +397,7 @@ mod test {
         let res = osm.reverse(&p);
         assert_eq!(
             res.unwrap(),
-            "68, Carrer de Calatrava, les Tres Torres, Sarrià - Sant Gervasi, Barcelona, BCN, CAT, 08017, España",
+            "68, Carrer de Calatrava, les Tres Torres, Sarrià - Sant Gervasi, Barcelona, Barcelonès, Barcelona, Catalunya, 08017, España",
         );
     }
 }
