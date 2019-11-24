@@ -2,8 +2,8 @@
 //! Over time, a variety of providers will be added. Each provider may implement one or both
 //! of the `Forward` and `Reverse` traits, which provide forward– and reverse-geocoding methods.
 //!
-//! Note that for the `reverse` method, the return type is simply `String`,
-//! As this is the lowest common denominator reverse-geocoding result.
+//! Note that for the `reverse` method, the return type is simply `Option<String>`,
+//! as this is the lowest common denominator reverse-geocoding result.
 //! Individual providers may implement additional methods, which return more
 //! finely-structured and/or extensive data, and enable more specific query tuning.
 //! Coordinate data are specified using the [`Point`](struct.Point.html) struct, which has several
@@ -36,7 +36,7 @@ pub use crate::openstreetmap::Openstreetmap;
 /// Reverse-geocode a coordinate.
 ///
 /// This trait represents the most simple and minimal implementation
-/// available from a given geocoding provider: an address formatted as a String.
+/// available from a given geocoding provider: some address formatted as Option<String>.
 ///
 /// Examples
 ///
