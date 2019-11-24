@@ -263,7 +263,7 @@ where
     /// returned `String` can be found [here](https://blog.opencagedata.com/post/99059889253/good-looking-addresses-solving-the-berlin-berlin)
     ///
     /// This method passes the `no_annotations` and `no_record` parameters to the API.
-    fn reverse(&self, point: &Point<T>) -> Result<String, Error> {
+    fn reverse(&self, point: &Point<T>) -> Result<Option<String>, Error> {
         let mut resp = self
             .client
             .get(&self.endpoint)
@@ -295,7 +295,7 @@ where
                 **mutex = Some(h)
             }
         }
-        Ok(address.formatted.to_string())
+        Ok(Some(address.formatted.to_string()))
     }
 }
 
@@ -596,7 +596,7 @@ mod test {
         let res = oc.reverse(&p);
         assert_eq!(
             res.unwrap(),
-            "Carrer de Calatrava, 68, 08017 Barcelona, Spain"
+            Some("Carrer de Calatrava, 68, 08017 Barcelona, Spain".to_string())
         );
     }
     #[test]
