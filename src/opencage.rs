@@ -180,7 +180,7 @@ impl Opencage {
     /// let res = oc.forward_full(&address, bbox).unwrap();
     /// let first_result = &res.results[0];
     /// // the first result is correct
-    /// assert_eq!(first_result.formatted, "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom");
+    /// assert_eq!(first_result.formatted, "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom");
     ///```
     ///
     /// ```
@@ -193,7 +193,7 @@ impl Opencage {
     /// let first_result = &res.results[0];
     /// assert_eq!(
     ///     first_result.formatted,
-    ///     "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
+    ///     "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
     /// );
     /// ```
     ///
@@ -210,7 +210,7 @@ impl Opencage {
     /// let first_result = &res.results[0];
     /// assert_eq!(
     ///     first_result.formatted,
-    ///     "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
+    ///     "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
     /// );
     /// ```
     pub fn forward_full<T, U>(&self, place: &str, bounds: U) -> Result<OpencageResponse<T>, Error>
@@ -630,7 +630,7 @@ mod test {
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
+            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
         );
     }
     #[test]
@@ -645,7 +645,7 @@ mod test {
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
+            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
         );
     }
     #[test]
@@ -660,7 +660,7 @@ mod test {
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
+            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
         );
     }
     #[test]
@@ -675,7 +675,7 @@ mod test {
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
+            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
         );
     }
     #[test]
@@ -686,7 +686,7 @@ mod test {
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PH, United Kingdom"
+            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
         );
     }
 }
