@@ -1,6 +1,7 @@
 //! The [GeoAdmin] (https://api3.geo.admin.ch) provider.
 //!
 //! Based on the [Search API] (https://api3.geo.admin.ch/services/sdiservices.html#search)
+//! and [Identify Features API] (https://api3.geo.admin.ch/services/sdiservices.html#identify-features)
 //!
 //! ### Example
 //!
@@ -60,7 +61,7 @@ where
     /// ```
     pub fn new(searchtext: &'a str) -> GeoAdminParams<'a, T> {
         GeoAdminParams {
-            searchtext: searchtext,
+            searchtext,
             origins: "zipcode,gg25,district,kantone,gazetteer,address,parcel",
             bbox: None,
             limit: Some(50),
@@ -114,7 +115,7 @@ impl GeoAdmin {
             .expect("Couldn't build a client!");
         GeoAdmin {
             client,
-            endpoint: endpoint.to_string(),
+            endpoint,
         }
     }
 
@@ -124,7 +125,7 @@ impl GeoAdmin {
     /// options, including what origins to response and whether to filter
     /// by a bounding box.
     ///
-    /// Please see [the documentation](https://api3.geo.admin.ch/services/sdiservices.html#search/) for details.
+    /// Please see [the documentation](https://api3.geo.admin.ch/services/sdiservices.html#search) for details.
     ///
     /// This method passes the `format` parameter to the API.
     ///
@@ -132,7 +133,7 @@ impl GeoAdmin {
     ///
     /// ```
     /// use geocoding::{GeoAdmin, InputBounds, Point};
-    /// use geocoding::geoadmin::{GeoAdminParams, GeoAdminResponse};
+    /// use geocoding::geoadmin::{GeoAdminParams, GeoAdminForwardResponse};
     ///
     /// let geoadmin = GeoAdmin::new();
     /// let bbox = InputBounds::new(
@@ -143,14 +144,14 @@ impl GeoAdmin {
     ///     .with_origins("address")
     ///     .with_bbox(&bbox)
     ///     .build();
-    /// let res: GeoAdminResponse<f64> = geoadmin.forward_full(&params).unwrap();
+    /// let res: GeoAdminForwardResponse<f64> = geoadmin.forward_full(&params).unwrap();
     /// let result = &res.results[0];
     /// assert_eq!(
     ///     result.attrs.label,
     ///     "Seftigenstrasse 264 <b>3084 Wabern</b>",
     /// );
     /// ```
-    pub fn forward_full<T>(&self, params: &GeoAdminParams<T>) -> Result<GeoAdminResponse<T>, Error>
+    pub fn forward_full<T>(&self, params: &GeoAdminParams<T>) -> Result<GeoAdminForwardResponse<T>, Error>
     where
         T: Float,
         for<'de> T: Deserialize<'de>,
@@ -185,7 +186,7 @@ impl GeoAdmin {
             .query(&query)
             .send()?
             .error_for_status()?;
-        let res: GeoAdminResponse<T> = resp.json()?;
+        let res: GeoAdminForwardResponse<T> = resp.json()?;
         Ok(res)
     }
 }
@@ -201,7 +202,7 @@ where
     T: Float,
     for<'de> T: Deserialize<'de>,
 {
-    /// A forward-geocoding lookup of an address. Please see [the documentation](https://api3.geo.admin.ch/services/sdiservices.html#search/) for details.
+    /// A forward-geocoding lookup of an address. Please see [the documentation](https://api3.geo.admin.ch/services/sdiservices.html#search) for details.
     ///
     /// This method passes the `type`,  `origins`, `limit` and `sr` parameter to the API.
     fn forward(&self, place: &str) -> Result<Vec<Point<T>>, Error> {
@@ -217,7 +218,7 @@ where
             ])
             .send()?
             .error_for_status()?;
-        let res: GeoAdminResponse<T> = resp.json()?;
+        let res: GeoAdminForwardResponse<T> = resp.json()?;
         Ok(res
             .results
             .iter()
@@ -232,38 +233,31 @@ where
     for<'de> T: Deserialize<'de>,
 {
     /// A reverse lookup of a point. More detail on the format of the
-    /// returned `String` can be found [here](https://nominatim.org/release-docs/develop/api/Reverse/)
+    /// returned `String` can be found [here](https://api3.geo.admin.ch/services/sdiservices.html#identify-features)
     ///
     /// This method passes the `format` parameter to the API.
     fn reverse(&self, point: &Point<T>) -> Result<Option<String>, Error> {
         let mut resp = self
             .client
-            .get(&format!("{}SearchServer", self.endpoint))
+            .get(&format!("{}MapServer/identify", self.endpoint))
             .query(&[
-                (
-                    &"bbox",
-                    &String::from(InputBounds::new(
-                        Point::new(
-                            point.x().to_f64().unwrap() - 500.,
-                            point.y().to_f64().unwrap() - 500.,
-                        ),
-                        Point::new(
-                            point.x().to_f64().unwrap() + 500.,
-                            point.y().to_f64().unwrap() + 500.,
-                        ),
-                    )),
-                ),
-                (&"type", &String::from("locations")),
-                (&"origins", &String::from("address")),
-                (&"limit", &String::from("1")),
+                (&"geometry", &format!("{},{}", point.x().to_f64().unwrap(), point.y().to_f64().unwrap())),
+                (&"geometryType", &String::from("esriGeometryPoint")),
+                (&"layers", &String::from("all:ch.bfs.gebaeude_wohnungs_register")),
+                (&"mapExtent", &String::from("0,0,100,100")),
+                (&"imageDisplay", &String::from("100,100,100")),
+                (&"tolerance", &String::from("50")),
+                (&"geometryFormat", &String::from("geojson")),
                 (&"sr", &String::from("2056")),
+                (&"lang", &String::from("en")),   
             ])
             .send()?
             .error_for_status()?;
-        println!("{:?}", resp.url());
-        let res: GeoAdminResponse<T> = resp.json()?;
-        if res.results.len() > 0 {
-            Ok(Some(res.results[0].attrs.label.to_string()))
+        let res: GeoAdminReverseResponse = resp.json()?;
+        if !res.results.is_empty() {
+            let properties = &res.results[0].properties;
+            let address = format!("{} {}, {} {}", properties.strname1, properties.deinr, properties.plz4, properties.plzname);
+            Ok(Some(address))
         } else {
             Ok(None)
         }
@@ -271,7 +265,7 @@ where
 }
 /// The top-level full JSON response returned by a forward-geocoding request
 ///
-/// See [the documentation](https://api3.geo.admin.ch/services/sdiservices.html#search/) for more details
+/// See [the documentation](https://api3.geo.admin.ch/services/sdiservices.html#search) for more details
 ///
 ///```json
 ///{
@@ -300,27 +294,27 @@ where
 /// }
 ///```
 #[derive(Debug, Deserialize)]
-pub struct GeoAdminResponse<T>
+pub struct GeoAdminForwardResponse<T>
 where
     T: Float,
 {
-    pub results: Vec<GeoAdminLocation<T>>,
+    pub results: Vec<GeoAdminForwardLocation<T>>,
 }
 
 /// A geocoding result
 #[derive(Debug, Deserialize)]
-pub struct GeoAdminLocation<T>
+pub struct GeoAdminForwardLocation<T>
 where
     T: Float,
 {
     id: usize,
     pub weight: u32,
-    pub attrs: LocationAttributes<T>,
+    pub attrs: ForwardLocationAttributes<T>,
 }
 
 /// Geocoding result attributes
 #[derive(Clone, Debug, Deserialize)]
-pub struct LocationAttributes<T> {
+pub struct ForwardLocationAttributes<T> {
     pub detail: String,
     pub origin: String,
     #[serde(rename = "layerBodId")]
@@ -340,6 +334,85 @@ pub struct LocationAttributes<T> {
     pub label: String,
     pub zoomlevel: u32,
 }
+
+/// The top-level full JSON response returned by a reverse-geocoding request
+///
+/// See [the documentation](https://api3.geo.admin.ch/services/sdiservices.html#identify-features) for more details
+///
+///```json
+/// {
+///     "results": [
+///         {
+///             "featureId": "1272199_0",
+///             "attributes": {
+///                 "gdename": "K\u00f6niz",
+///                 "strname1": "Seftigenstrasse",
+///                 "strname_de": "Seftigenstrasse",
+///                 "gdekt": "BE",
+///                 "label": "Seftigenstrasse",
+///                 "gstat": 1004,
+///                 "egid": 1272199,
+///                 "dstrid": 1019330,
+///                 "strname_fr": null,
+///                 "strname_rm": null,
+///                 "gdenr": 355,
+///                 "plz6": 308400,
+///                 "bgdi_created": "22.12.2019",
+///                 "plz4": 3084,
+///                 "plzname": "Wabern",
+///                 "strname_it": null,
+///                 "deinr": "264"
+///             },
+///             "layerBodId": "ch.bfs.gebaeude_wohnungs_register",
+///             "layerName": "Register of Buildings and Dwellings",
+///             "id": "1272199_0"
+///         }
+///     ]
+/// }
+///```
+#[derive(Debug, Deserialize)]
+pub struct GeoAdminReverseResponse
+{
+    pub results: Vec<GeoAdminReverseLocation>,
+}
+
+/// A geocoding result
+#[derive(Debug, Deserialize)]
+pub struct GeoAdminReverseLocation
+{
+    id: String,
+    #[serde(rename = "featureId")]
+    pub feature_id: String,
+    #[serde(rename = "layerBodId")]
+    pub layer_bod_id: String,
+    #[serde(rename = "layerName")]
+    pub layer_name: String,
+    pub properties: ReverseLocationAttributes,
+}
+
+
+/// Geocoding result attributes
+#[derive(Clone, Debug, Deserialize)]
+pub struct ReverseLocationAttributes {
+    pub gdenr: u32,
+    pub gdename: String,
+    pub strname1: String,
+    pub strname_de: Option<String>,
+    pub strname_fr: Option<String>,
+    pub strname_rm: Option<String>,
+    pub strname_it: Option<String>,
+    pub gdekt: String,
+    pub label: String,
+    pub gstat: u32,
+    pub egid: u32,
+    pub dstrid: u32,
+    pub plz6: u32,
+    pub bgdi_created: String,
+    pub plz4: u32,
+    pub plzname: String,
+    pub deinr: String,
+}
+
 
 #[cfg(test)]
 mod test {
@@ -365,7 +438,7 @@ mod test {
             .with_origins("address")
             .with_bbox(&bbox)
             .build();
-        let res: GeoAdminResponse<f64> = geoadmin.forward_full(&params).unwrap();
+        let res: GeoAdminForwardResponse<f64> = geoadmin.forward_full(&params).unwrap();
         let result = &res.results[0];
         assert_eq!(result.attrs.label, "Seftigenstrasse 264 <b>3084 Wabern</b>",);
     }
@@ -388,7 +461,7 @@ mod test {
         let res = geoadmin.reverse(&p);
         assert_eq!(
             res.unwrap(),
-            Some("Seftigenstrasse 264 <b>3084 Wabern</b>".to_string()),
+            Some("Seftigenstrasse 264, 3084 Wabern".to_string()),
         );
     }
 }
