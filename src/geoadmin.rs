@@ -1,8 +1,12 @@
-//! The [GeoAdmin] (https://api3.geo.admin.ch) provider.
+//! The [GeoAdmin] (https://api3.geo.admin.ch) provider for geocoding in Switzerland exclusively.
 //!
 //! Based on the [Search API] (https://api3.geo.admin.ch/services/sdiservices.html#search)
 //! and [Identify Features API] (https://api3.geo.admin.ch/services/sdiservices.html#identify-features)
 //!
+//! It uses the local swiss coordinate reference system [CH1903+ / LV95] 
+//! (https://www.swisstopo.admin.ch/en/knowledge-facts/surveying-geodesy/reference-frames/local/lv95.html)
+//! (EPSG:2056) for input and output coordinates. Be aware of the switched axis names!
+//! 
 //! ### Example
 //!
 //! ```
@@ -11,7 +15,7 @@
 //! let geoadmin = GeoAdmin::new();
 //! let address = "Seftigenstrasse 264, 3084 Wabern";
 //! let res = geoadmin.forward(&address);
-//! assert_eq!(res.unwrap(), vec![Point::new(7.451352119445801, 46.92793655395508)]);
+//! assert_eq!(res.unwrap(), vec![Point::new(2_600_968.75, 1_197_427.0)]);
 //! ```
 use crate::Deserialize;
 use crate::InputBounds;
@@ -222,7 +226,7 @@ where
         Ok(res
             .results
             .iter()
-            .map(|res| Point::new(res.attrs.lon, res.attrs.lat))
+            .map(|res| Point::new(res.attrs.y, res.attrs.x))  // y = west-east, x = north-south
             .collect())
     }
 }
@@ -426,14 +430,14 @@ mod test {
         let res = geoadmin.forward(&address);
         assert_eq!(
             res.unwrap(),
-            vec![Point::new(7.451352119445801, 46.92793655395508)]
+            vec![Point::new(2_600_968.75, 1_197_427.0)]
         );
     }
 
     #[test]
     fn forward_full_test() {
         let geoadmin = GeoAdmin::new();
-        let bbox = InputBounds::new((2600967.75, 1197426.0), (2600969.75, 1197428.0));
+        let bbox = InputBounds::new((2_600_967.75, 1_197_426.0), (2_600_969.75, 1_197_428.0));
         let params = GeoAdminParams::new(&"Seftigenstrasse Bern")
             .with_origins("address")
             .with_bbox(&bbox)
@@ -450,14 +454,14 @@ mod test {
         let res = geoadmin.forward(&address);
         assert_eq!(
             res.unwrap(),
-            vec![Point::new(7.451352119445801, 46.92793655395508)]
+            vec![Point::new(2_600_968.75, 1_197_427.0)]
         );
     }
 
     #[test]
     fn reverse_test() {
         let geoadmin = GeoAdmin::new();
-        let p = Point::new(2600968.75, 1197427.0);
+        let p = Point::new(2_600_968.75, 1_197_427.0);
         let res = geoadmin.reverse(&p);
         assert_eq!(
             res.unwrap(),
