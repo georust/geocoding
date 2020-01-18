@@ -193,7 +193,7 @@ impl Opencage {
     /// let first_result = &res.results[0];
     /// assert_eq!(
     ///     first_result.formatted,
-    ///     "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
+    ///     "University College London, Grafton Way, London W1T 7NE, United Kingdom"
     /// );
     /// ```
     ///
@@ -688,7 +688,7 @@ mod test {
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
+            "University College London, Endsleigh Gardens, London WC1H 0EB, United Kingdom"
         );
     }
 }
