@@ -33,6 +33,10 @@ pub use crate::opencage::Opencage;
 pub mod openstreetmap;
 pub use crate::openstreetmap::Openstreetmap;
 
+// The GeoAdmin geocoding provider
+pub mod geoadmin;
+pub use crate::geoadmin::GeoAdmin;
+
 /// Reverse-geocode a coordinate.
 ///
 /// This trait represents the most simple and minimal implementation
