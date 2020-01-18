@@ -3,10 +3,10 @@
 //! Based on the [Search API] (https://api3.geo.admin.ch/services/sdiservices.html#search)
 //! and [Identify Features API] (https://api3.geo.admin.ch/services/sdiservices.html#identify-features)
 //!
-//! It uses the local swiss coordinate reference system [CH1903+ / LV95] 
+//! It uses the local swiss coordinate reference system [CH1903+ / LV95]
 //! (https://www.swisstopo.admin.ch/en/knowledge-facts/surveying-geodesy/reference-frames/local/lv95.html)
 //! (EPSG:2056) for input and output coordinates. Be aware of the switched axis names!
-//! 
+//!
 //! ### Example
 //!
 //! ```
@@ -117,10 +117,7 @@ impl GeoAdmin {
             .default_headers(headers)
             .build()
             .expect("Couldn't build a client!");
-        GeoAdmin {
-            client,
-            endpoint,
-        }
+        GeoAdmin { client, endpoint }
     }
 
     /// A forward-geocoding search of a location, returning a full detailed response
@@ -155,7 +152,10 @@ impl GeoAdmin {
     ///     "Seftigenstrasse 264 <b>3084 Wabern</b>",
     /// );
     /// ```
-    pub fn forward_full<T>(&self, params: &GeoAdminParams<T>) -> Result<GeoAdminForwardResponse<T>, Error>
+    pub fn forward_full<T>(
+        &self,
+        params: &GeoAdminParams<T>,
+    ) -> Result<GeoAdminForwardResponse<T>, Error>
     where
         T: Float,
         for<'de> T: Deserialize<'de>,
@@ -226,7 +226,7 @@ where
         Ok(res
             .results
             .iter()
-            .map(|res| Point::new(res.attrs.y, res.attrs.x))  // y = west-east, x = north-south
+            .map(|res| Point::new(res.attrs.y, res.attrs.x)) // y = west-east, x = north-south
             .collect())
     }
 }
@@ -245,22 +245,35 @@ where
             .client
             .get(&format!("{}MapServer/identify", self.endpoint))
             .query(&[
-                (&"geometry", &format!("{},{}", point.x().to_f64().unwrap(), point.y().to_f64().unwrap())),
+                (
+                    &"geometry",
+                    &format!(
+                        "{},{}",
+                        point.x().to_f64().unwrap(),
+                        point.y().to_f64().unwrap()
+                    ),
+                ),
                 (&"geometryType", &String::from("esriGeometryPoint")),
-                (&"layers", &String::from("all:ch.bfs.gebaeude_wohnungs_register")),
+                (
+                    &"layers",
+                    &String::from("all:ch.bfs.gebaeude_wohnungs_register"),
+                ),
                 (&"mapExtent", &String::from("0,0,100,100")),
                 (&"imageDisplay", &String::from("100,100,100")),
                 (&"tolerance", &String::from("50")),
                 (&"geometryFormat", &String::from("geojson")),
                 (&"sr", &String::from("2056")),
-                (&"lang", &String::from("en")),   
+                (&"lang", &String::from("en")),
             ])
             .send()?
             .error_for_status()?;
         let res: GeoAdminReverseResponse = resp.json()?;
         if !res.results.is_empty() {
             let properties = &res.results[0].properties;
-            let address = format!("{} {}, {} {}", properties.strname1, properties.deinr, properties.plz4, properties.plzname);
+            let address = format!(
+                "{} {}, {} {}",
+                properties.strname1, properties.deinr, properties.plz4, properties.plzname
+            );
             Ok(Some(address))
         } else {
             Ok(None)
@@ -375,15 +388,13 @@ pub struct ForwardLocationAttributes<T> {
 /// }
 ///```
 #[derive(Debug, Deserialize)]
-pub struct GeoAdminReverseResponse
-{
+pub struct GeoAdminReverseResponse {
     pub results: Vec<GeoAdminReverseLocation>,
 }
 
 /// A geocoding result
 #[derive(Debug, Deserialize)]
-pub struct GeoAdminReverseLocation
-{
+pub struct GeoAdminReverseLocation {
     id: String,
     #[serde(rename = "featureId")]
     pub feature_id: String,
@@ -393,7 +404,6 @@ pub struct GeoAdminReverseLocation
     pub layer_name: String,
     pub properties: ReverseLocationAttributes,
 }
-
 
 /// Geocoding result attributes
 #[derive(Clone, Debug, Deserialize)]
@@ -417,7 +427,6 @@ pub struct ReverseLocationAttributes {
     pub deinr: String,
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -428,10 +437,7 @@ mod test {
             GeoAdmin::new_with_endpoint("https://api3.geo.admin.ch/rest/services/api/".to_string());
         let address = "Seftigenstrasse 264, 3084 Wabern";
         let res = geoadmin.forward(&address);
-        assert_eq!(
-            res.unwrap(),
-            vec![Point::new(2_600_968.75, 1_197_427.0)]
-        );
+        assert_eq!(res.unwrap(), vec![Point::new(2_600_968.75, 1_197_427.0)]);
     }
 
     #[test]
@@ -452,10 +458,7 @@ mod test {
         let geoadmin = GeoAdmin::new();
         let address = "Seftigenstrasse 264, 3084 Wabern";
         let res = geoadmin.forward(&address);
-        assert_eq!(
-            res.unwrap(),
-            vec![Point::new(2_600_968.75, 1_197_427.0)]
-        );
+        assert_eq!(res.unwrap(), vec![Point::new(2_600_968.75, 1_197_427.0)]);
     }
 
     #[test]
