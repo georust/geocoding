@@ -26,6 +26,7 @@
 use crate::chrono::naive::serde::ts_seconds::deserialize as from_ts;
 use crate::chrono::NaiveDateTime;
 use crate::Deserialize;
+use crate::DeserializeOwned;
 use crate::InputBounds;
 use crate::Point;
 use crate::UA_STRING;
@@ -117,8 +118,7 @@ impl Opencage {
     ///```
     pub fn reverse_full<T>(&self, point: &Point<T>) -> Result<OpencageResponse<T>, Error>
     where
-        T: Float,
-        for<'de> T: Deserialize<'de>,
+        T: Float + DeserializeOwned,
     {
         let mut resp = self
             .client
@@ -215,9 +215,8 @@ impl Opencage {
     /// ```
     pub fn forward_full<T, U>(&self, place: &str, bounds: U) -> Result<OpencageResponse<T>, Error>
     where
-        T: Float,
+        T: Float + DeserializeOwned,
         U: Into<Option<InputBounds<T>>>,
-        for<'de> T: Deserialize<'de>,
     {
         let ann = String::from("0");
         let record = String::from("1");
@@ -256,8 +255,7 @@ impl Opencage {
 
 impl<T> Reverse<T> for Opencage
 where
-    T: Float,
-    for<'de> T: Deserialize<'de>,
+    T: Float + DeserializeOwned,
 {
     /// A reverse lookup of a point. More detail on the format of the
     /// returned `String` can be found [here](https://blog.opencagedata.com/post/99059889253/good-looking-addresses-solving-the-berlin-berlin)
@@ -301,8 +299,7 @@ where
 
 impl<T> Forward<T> for Opencage
 where
-    T: Float,
-    for<'de> T: Deserialize<'de>,
+    T: Float + DeserializeOwned,
 {
     /// A forward-geocoding lookup of an address. Please see [the documentation](https://opencagedata.com/api#ambiguous-results) for details
     /// of best practices in order to obtain good-quality results.

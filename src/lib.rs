@@ -23,6 +23,7 @@ pub use geo_types::{Coordinate, Point};
 use num_traits::Float;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::Client;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer};
 
 // The OpenCage geocoding provider
