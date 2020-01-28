@@ -142,7 +142,7 @@ impl Openstreetmap {
     /// let result = res.features[0].properties.clone();
     /// assert_eq!(
     ///     result.display_name,
-    ///     "University College London, Endsleigh Gardens, Holborn, Bloomsbury, London Borough of Camden, London, Greater London, England, WC1H 0EB, United Kingdom",
+    ///     "University College London, Torrington Square, Holborn, Bloomsbury, London Borough of Camden, London, Greater London, England, WC1H 0AB, United Kingdom",
     /// );
     /// ```
     pub fn forward_full<T>(
@@ -377,7 +377,7 @@ mod test {
         let result = res.features[0].properties.clone();
         assert_eq!(
             result.display_name,
-            "University College London, Endsleigh Gardens, Holborn, Bloomsbury, London Borough of Camden, London, Greater London, England, WC1H 0EB, United Kingdom",
+            "University College London, Torrington Square, Holborn, Bloomsbury, London Borough of Camden, London, Greater London, England, WC1H 0AB, United Kingdom",
         );
         assert_eq!(result.address.unwrap().city.unwrap(), "London");
     }
