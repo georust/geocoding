@@ -16,11 +16,11 @@
 //! let res = osm.forward(&address);
 //! assert_eq!(res.unwrap(), vec![Point::new(11.5761796, 48.1599218)]);
 //! ```
-use crate::Deserialize;
 use crate::InputBounds;
 use crate::Point;
 use crate::UA_STRING;
 use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
+use crate::{Deserialize, Serialize};
 use crate::{Forward, Reverse};
 use failure::Error;
 use num_traits::Float;
@@ -286,7 +286,7 @@ where
 ///  ]
 ///}
 ///```
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct OpenstreetmapResponse<T>
 where
     T: Float,
@@ -297,7 +297,7 @@ where
 }
 
 /// A geocoding result
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct OpenstreetmapResult<T>
 where
     T: Float,
@@ -309,7 +309,7 @@ where
 }
 
 /// Geocoding result properties
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ResultProperties {
     pub place_id: u64,
     pub osm_type: String,
@@ -323,7 +323,7 @@ pub struct ResultProperties {
 }
 
 /// Address details in the result object
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AddressDetails {
     pub city: Option<String>,
     pub city_district: Option<String>,
@@ -340,7 +340,7 @@ pub struct AddressDetails {
 }
 
 /// A geocoding result geometry
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ResultGeometry<T>
 where
     T: Float,
