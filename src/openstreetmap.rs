@@ -134,7 +134,7 @@ impl Openstreetmap {
     ///     (-0.13806939125061035, 51.51989264641164),
     ///     (-0.13427138328552246, 51.52319711775629),
     /// );
-    /// let params = OpenstreetmapParams::new(&"UCL CASA")
+    /// let params = OpenstreetmapParams::new(&"University College London")
     ///     .with_addressdetails(true)
     ///     .with_viewbox(&viewbox)
     ///     .build();
@@ -142,7 +142,7 @@ impl Openstreetmap {
     /// let result = res.features[0].properties.clone();
     /// assert_eq!(
     ///     result.display_name,
-    ///     "University College London, Torrington Square, Holborn, Bloomsbury, London Borough of Camden, London, Greater London, England, WC1H 0AB, United Kingdom",
+    ///     "University College London, Euston Road, Holborn, Somers Town, London Borough of Camden, London, Greater London, England, NW1 2FB, United Kingdom",
     /// );
     /// ```
     pub fn forward_full<T>(
@@ -377,9 +377,9 @@ mod test {
         let result = res.features[0].properties.clone();
         assert_eq!(
             result.display_name,
-            "University College London, Torrington Square, Holborn, Bloomsbury, London Borough of Camden, London, Greater London, England, WC1H 0AB, United Kingdom",
+            "University College London, Euston Road, Holborn, Somers Town, London Borough of Camden, London, Greater London, England, NW1 2FB, United Kingdom",
         );
-        assert_eq!(result.address.unwrap().city.unwrap(), "London");
+        assert_eq!(result.address.unwrap().city.unwrap(), "London Borough of Camden");
     }
 
     #[test]
@@ -397,7 +397,7 @@ mod test {
         let res = osm.reverse(&p);
         assert_eq!(
             res.unwrap(),
-            Some("68, Carrer de Calatrava, les Tres Torres, Sarrià - Sant Gervasi, Barcelona, Barcelonès, Barcelona, Catalunya, 08017, España".to_string()),
+            Some("68, Carrer de Calatrava, la Bonanova, les Tres Torres, Sarrià - Sant Gervasi, Barcelona, Barcelonès, Barcelona, Catalunya, 08017, España".to_string()),
         );
     }
 }

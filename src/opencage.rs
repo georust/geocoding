@@ -188,12 +188,12 @@ impl Opencage {
     /// use geocoding::{Opencage, InputBounds, Point};
     /// use geocoding::opencage::{NOBOX};
     /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
-    /// let address = "UCL CASA";
+    /// let address = "Moabit, Berlin";
     /// let res = oc.forward_full(&address, NOBOX).unwrap();
     /// let first_result = &res.results[0];
     /// assert_eq!(
     ///     first_result.formatted,
-    ///     "University College London, Endsleigh Street, London WC1H 0DS, United Kingdom"
+    ///     "Moabit, Berlin, Germany"
     /// );
     /// ```
     ///
@@ -680,12 +680,12 @@ mod test {
     #[test]
     fn forward_full_test_nobox() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
-        let address = "UCL CASA";
+        let address = "Moabit, Berlin, Germany";
         let res = oc.forward_full(&address, NOBOX).unwrap();
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
-            "University College London, Endsleigh Street, London WC1H 0DS, United Kingdom"
+            "Moabit, Berlin, Germany"
         );
     }
 }
