@@ -25,36 +25,33 @@
 //! ```
 use crate::chrono::naive::serde::ts_seconds::deserialize as from_ts;
 use crate::chrono::NaiveDateTime;
-use crate::Deserialize;
 use crate::DeserializeOwned;
 use crate::InputBounds;
 use crate::Point;
 use crate::UA_STRING;
 use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
+use crate::{Deserialize, Serialize};
 use crate::{Forward, Reverse};
 use failure::Error;
 use num_traits::Float;
+use serde::Deserializer;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-mod string_or_int {
-    use crate::{Deserialize, Deserializer};
+pub fn deserialize_string_or_int<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrInt {
+        String(String),
+        Int(i32),
+    }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<String, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        #[serde(untagged)]
-        enum StringOrInt {
-            String(String),
-            Int(i32),
-        }
-
-        match StringOrInt::deserialize(deserializer)? {
-            StringOrInt::String(s) => Ok(s),
-            StringOrInt::Int(i) => Ok(i.to_string()),
-        }
+    match StringOrInt::deserialize(deserializer)? {
+        StringOrInt::String(s) => Ok(s),
+        StringOrInt::Int(i) => Ok(i.to_string()),
     }
 }
 
@@ -468,7 +465,7 @@ where
 ///   "total_results": 1
 /// }
 ///```
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct OpencageResponse<T>
 where
     T: Float,
@@ -485,7 +482,7 @@ where
 }
 
 /// A forward geocoding result
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Results<T>
 where
     T: Float,
@@ -499,7 +496,7 @@ where
 }
 
 /// Annotations pertaining to the geocoding result
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Annotations<T>
 where
     T: Float,
@@ -520,13 +517,13 @@ where
 }
 
 /// Currency metadata
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Currency {
     pub alternate_symbols: Option<Vec<String>>,
     pub decimal_mark: String,
     pub html_entity: String,
     pub iso_code: String,
-    #[serde(with = "string_or_int")]
+    #[serde(deserialize_with = "deserialize_string_or_int")]
     pub iso_numeric: String,
     pub name: String,
     pub smallest_denomination: i16,
@@ -538,33 +535,33 @@ pub struct Currency {
 }
 
 /// Sunrise and sunset metadata
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Sun {
     pub rise: HashMap<String, i64>,
     pub set: HashMap<String, i64>,
 }
 
 /// Timezone metadata
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Timezone {
     pub name: String,
     pub now_in_dst: i16,
     pub offset_sec: i32,
-    #[serde(with = "string_or_int")]
+    #[serde(deserialize_with = "deserialize_string_or_int")]
     pub offset_string: String,
-    #[serde(with = "string_or_int")]
+    #[serde(deserialize_with = "deserialize_string_or_int")]
     pub short_name: String,
 }
 
 /// HTTP status metadata
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Status {
     pub message: String,
     pub code: i16,
 }
 
 /// Timestamp metadata
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Timestamp {
     pub created_http: String,
     #[serde(deserialize_with = "from_ts")]
@@ -572,7 +569,7 @@ pub struct Timestamp {
 }
 
 /// Bounding-box metadata
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Bounds<T>
 where
     T: Float,
