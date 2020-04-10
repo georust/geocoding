@@ -8,6 +8,8 @@
     - <https://github.com/georust/geocoding/pull/34>
 - Update geo-types to 0.5
     - <https://github.com/georust/geocoding/pull/34>
+- Update reqwest and hyper
+    - <https://github.com/georust/geocoding/pull/35>
 
 
 ## 0.1.0

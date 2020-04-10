@@ -20,9 +20,9 @@ static UA_STRING: &str = "Rust-Geocoding";
 use chrono;
 pub use geo_types::{Coordinate, Point};
 use num_traits::Float;
+use reqwest::blocking::Client;
 use reqwest::header::ToStrError;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
-use reqwest::Client;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::num::ParseIntError;
@@ -39,7 +39,6 @@ pub use crate::openstreetmap::Openstreetmap;
 // The GeoAdmin geocoding provider
 pub mod geoadmin;
 pub use crate::geoadmin::GeoAdmin;
-
 
 /// Errors that can occur during geocoding operations
 #[derive(Error, Debug)]

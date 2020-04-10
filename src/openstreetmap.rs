@@ -109,7 +109,7 @@ impl Openstreetmap {
             .expect("Couldn't build a client!");
         Openstreetmap {
             client,
-            endpoint: endpoint.to_string(),
+            endpoint,
         }
     }
 
@@ -169,7 +169,7 @@ impl Openstreetmap {
             query.push((&"viewbox", &viewbox));
         }
 
-        let mut resp = self
+        let resp = self
             .client
             .get(&format!("{}search", self.endpoint))
             .query(&query)
@@ -195,7 +195,7 @@ where
     ///
     /// This method passes the `format` parameter to the API.
     fn forward(&self, place: &str) -> Result<Vec<Point<T>>, GeocodingError> {
-        let mut resp = self
+        let resp = self
             .client
             .get(&format!("{}search", self.endpoint))
             .query(&[(&"q", place), (&"format", &String::from("geojson"))])
@@ -220,7 +220,7 @@ where
     ///
     /// This method passes the `format` parameter to the API.
     fn reverse(&self, point: &Point<T>) -> Result<Option<String>, GeocodingError> {
-        let mut resp = self
+        let resp = self
             .client
             .get(&format!("{}reverse", self.endpoint))
             .query(&[
