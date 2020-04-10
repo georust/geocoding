@@ -18,13 +18,15 @@
 static UA_STRING: &str = "Rust-Geocoding";
 
 use chrono;
-use failure::Error;
 pub use geo_types::{Coordinate, Point};
 use num_traits::Float;
+use reqwest::header::ToStrError;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::Client;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use std::num::ParseIntError;
+use thiserror::Error;
 
 // The OpenCage geocoding provider
 pub mod opencage;
@@ -37,6 +39,22 @@ pub use crate::openstreetmap::Openstreetmap;
 // The GeoAdmin geocoding provider
 pub mod geoadmin;
 pub use crate::geoadmin::GeoAdmin;
+
+
+/// Errors that can occur during geocoding operations
+#[derive(Error, Debug)]
+pub enum GeocodingError {
+    #[error("Forward geocoding failed")]
+    Forward,
+    #[error("Reverse geocoding failed")]
+    Reverse,
+    #[error("HTTP request error")]
+    Request(#[from] reqwest::Error),
+    #[error("Error converting headers to String")]
+    HeaderConversion(#[from] ToStrError),
+    #[error("Error converting int to String")]
+    ParseInt(#[from] ParseIntError),
+}
 
 /// Reverse-geocode a coordinate.
 ///
@@ -63,7 +81,7 @@ where
     // NOTE TO IMPLEMENTERS: Point coordinates are lon, lat (x, y)
     // You may have to provide these coordinates in reverse order,
     // depending on the provider's requirements (see e.g. OpenCage)
-    fn reverse(&self, point: &Point<T>) -> Result<Option<String>, Error>;
+    fn reverse(&self, point: &Point<T>) -> Result<Option<String>, GeocodingError>;
 }
 
 /// Forward-geocode a coordinate.
@@ -91,7 +109,7 @@ where
     // NOTE TO IMPLEMENTERS: while returned provider point data may not be in
     // lon, lat (x, y) order, Geocoding requires this order in its output Point
     // data. Please pay attention when using returned data to construct Points
-    fn forward(&self, address: &str) -> Result<Vec<Point<T>>, Error>;
+    fn forward(&self, address: &str) -> Result<Vec<Point<T>>, GeocodingError>;
 }
 
 /// Used to specify a bounding box to search within when forward-geocoding

@@ -16,13 +16,13 @@
 //! let res = osm.forward(&address);
 //! assert_eq!(res.unwrap(), vec![Point::new(11.5761796, 48.1599218)]);
 //! ```
+use crate::GeocodingError;
 use crate::InputBounds;
 use crate::Point;
 use crate::UA_STRING;
 use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
 use crate::{Deserialize, Serialize};
 use crate::{Forward, Reverse};
-use failure::Error;
 use num_traits::Float;
 
 /// An instance of the Openstreetmap geocoding service
@@ -148,7 +148,7 @@ impl Openstreetmap {
     pub fn forward_full<T>(
         &self,
         params: &OpenstreetmapParams<T>,
-    ) -> Result<OpenstreetmapResponse<T>, Error>
+    ) -> Result<OpenstreetmapResponse<T>, GeocodingError>
     where
         T: Float,
         for<'de> T: Deserialize<'de>,
@@ -194,7 +194,7 @@ where
     /// A forward-geocoding lookup of an address. Please see [the documentation](https://nominatim.org/release-docs/develop/api/Search/) for details.
     ///
     /// This method passes the `format` parameter to the API.
-    fn forward(&self, place: &str) -> Result<Vec<Point<T>>, Error> {
+    fn forward(&self, place: &str) -> Result<Vec<Point<T>>, GeocodingError> {
         let mut resp = self
             .client
             .get(&format!("{}search", self.endpoint))
@@ -219,7 +219,7 @@ where
     /// returned `String` can be found [here](https://nominatim.org/release-docs/develop/api/Reverse/)
     ///
     /// This method passes the `format` parameter to the API.
-    fn reverse(&self, point: &Point<T>) -> Result<Option<String>, Error> {
+    fn reverse(&self, point: &Point<T>) -> Result<Option<String>, GeocodingError> {
         let mut resp = self
             .client
             .get(&format!("{}reverse", self.endpoint))
@@ -379,7 +379,10 @@ mod test {
             result.display_name,
             "University College London, Euston Road, Holborn, Somers Town, London Borough of Camden, London, Greater London, England, NW1 2FB, United Kingdom",
         );
-        assert_eq!(result.address.unwrap().city.unwrap(), "London Borough of Camden");
+        assert_eq!(
+            result.address.unwrap().city.unwrap(),
+            "London Borough of Camden"
+        );
     }
 
     #[test]

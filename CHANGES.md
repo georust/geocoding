@@ -1,9 +1,14 @@
 # Changes
 
-## 0.1.4
+## 0.2.0
 
 - Made Opencage and Openstreetmap responses/results serializable so it's easier to store them afterwards
   - <https://github.com/georust/geocoding/pull/31>
+- Replace Failure with Thiserror
+    - <https://github.com/georust/geocoding/pull/34>
+- Update geo-types to 0.5
+    - <https://github.com/georust/geocoding/pull/34>
+
 
 ## 0.1.0
 
