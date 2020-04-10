@@ -109,7 +109,7 @@ impl Openstreetmap {
             .expect("Couldn't build a client!");
         Openstreetmap {
             client,
-            endpoint: endpoint.to_string(),
+            endpoint,
         }
     }
 
