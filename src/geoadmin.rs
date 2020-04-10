@@ -18,12 +18,12 @@
 //! assert_eq!(res.unwrap(), vec![Point::new(2_600_968.75, 1_197_427.0)]);
 //! ```
 use crate::Deserialize;
+use crate::GeocodingError;
 use crate::InputBounds;
 use crate::Point;
 use crate::UA_STRING;
 use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
 use crate::{Forward, Reverse};
-use failure::Error;
 use num_traits::Float;
 
 /// An instance of the GeoAdmin geocoding service
@@ -155,7 +155,7 @@ impl GeoAdmin {
     pub fn forward_full<T>(
         &self,
         params: &GeoAdminParams<T>,
-    ) -> Result<GeoAdminForwardResponse<T>, Error>
+    ) -> Result<GeoAdminForwardResponse<T>, GeocodingError>
     where
         T: Float,
         for<'de> T: Deserialize<'de>,
@@ -209,7 +209,7 @@ where
     /// A forward-geocoding lookup of an address. Please see [the documentation](https://api3.geo.admin.ch/services/sdiservices.html#search) for details.
     ///
     /// This method passes the `type`,  `origins`, `limit` and `sr` parameter to the API.
-    fn forward(&self, place: &str) -> Result<Vec<Point<T>>, Error> {
+    fn forward(&self, place: &str) -> Result<Vec<Point<T>>, GeocodingError> {
         let mut resp = self
             .client
             .get(&format!("{}SearchServer", self.endpoint))
@@ -240,7 +240,7 @@ where
     /// returned `String` can be found [here](https://api3.geo.admin.ch/services/sdiservices.html#identify-features)
     ///
     /// This method passes the `format` parameter to the API.
-    fn reverse(&self, point: &Point<T>) -> Result<Option<String>, Error> {
+    fn reverse(&self, point: &Point<T>) -> Result<Option<String>, GeocodingError> {
         let mut resp = self
             .client
             .get(&format!("{}MapServer/identify", self.endpoint))

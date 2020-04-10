@@ -26,13 +26,13 @@
 use crate::chrono::naive::serde::ts_seconds::deserialize as from_ts;
 use crate::chrono::NaiveDateTime;
 use crate::DeserializeOwned;
+use crate::GeocodingError;
 use crate::InputBounds;
 use crate::Point;
 use crate::UA_STRING;
 use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
 use crate::{Deserialize, Serialize};
 use crate::{Forward, Reverse};
-use failure::Error;
 use num_traits::Float;
 use serde::Deserializer;
 use std::collections::HashMap;
@@ -113,7 +113,7 @@ impl Opencage {
     ///     "Carrer de Calatrava"
     /// );
     ///```
-    pub fn reverse_full<T>(&self, point: &Point<T>) -> Result<OpencageResponse<T>, Error>
+    pub fn reverse_full<T>(&self, point: &Point<T>) -> Result<OpencageResponse<T>, GeocodingError>
     where
         T: Float + DeserializeOwned,
     {
@@ -210,7 +210,11 @@ impl Opencage {
     ///     "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
     /// );
     /// ```
-    pub fn forward_full<T, U>(&self, place: &str, bounds: U) -> Result<OpencageResponse<T>, Error>
+    pub fn forward_full<T, U>(
+        &self,
+        place: &str,
+        bounds: U,
+    ) -> Result<OpencageResponse<T>, GeocodingError>
     where
         T: Float + DeserializeOwned,
         U: Into<Option<InputBounds<T>>>,
@@ -258,7 +262,7 @@ where
     /// returned `String` can be found [here](https://blog.opencagedata.com/post/99059889253/good-looking-addresses-solving-the-berlin-berlin)
     ///
     /// This method passes the `no_annotations` and `no_record` parameters to the API.
-    fn reverse(&self, point: &Point<T>) -> Result<Option<String>, Error> {
+    fn reverse(&self, point: &Point<T>) -> Result<Option<String>, GeocodingError> {
         let mut resp = self
             .client
             .get(&self.endpoint)
@@ -302,7 +306,7 @@ where
     /// of best practices in order to obtain good-quality results.
     ///
     /// This method passes the `no_annotations` and `no_record` parameters to the API.
-    fn forward(&self, place: &str) -> Result<Vec<Point<T>>, Error> {
+    fn forward(&self, place: &str) -> Result<Vec<Point<T>>, GeocodingError> {
         let mut resp = self
             .client
             .get(&self.endpoint)
@@ -680,9 +684,6 @@ mod test {
         let address = "Moabit, Berlin, Germany";
         let res = oc.forward_full(&address, NOBOX).unwrap();
         let first_result = &res.results[0];
-        assert_eq!(
-            first_result.formatted,
-            "Moabit, Berlin, Germany"
-        );
+        assert_eq!(first_result.formatted, "Moabit, Berlin, Germany");
     }
 }
