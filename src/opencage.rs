@@ -117,7 +117,7 @@ impl Opencage {
     where
         T: Float + DeserializeOwned,
     {
-        let mut resp = self
+        let resp = self
             .client
             .get(&self.endpoint)
             .query(&[
@@ -136,7 +136,6 @@ impl Opencage {
             ])
             .send()?
             .error_for_status()?;
-        let res: OpencageResponse<T> = resp.json()?;
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
         if let Some(headers) = resp.headers().get::<_>(XRL) {
             let mut lock = self.remaining.try_lock();
@@ -147,6 +146,7 @@ impl Opencage {
                 **mutex = Some(h)
             }
         }
+        let res: OpencageResponse<T> = resp.json()?;
         Ok(res)
     }
     /// A forward-geocoding lookup of an address, returning an annotated response.
@@ -234,13 +234,12 @@ impl Opencage {
             bd = String::from(bds);
             query.push(("bounds", &bd));
         }
-        let mut resp = self
+        let resp = self
             .client
             .get(&self.endpoint)
             .query(&query)
             .send()?
             .error_for_status()?;
-        let res: OpencageResponse<T> = resp.json()?;
         if let Some(headers) = resp.headers().get::<_>(XRL) {
             let mut lock = self.remaining.try_lock();
             if let Ok(ref mut mutex) = lock {
@@ -250,6 +249,7 @@ impl Opencage {
                 **mutex = Some(h)
             }
         }
+        let res: OpencageResponse<T> = resp.json()?;
         Ok(res)
     }
 }
@@ -263,7 +263,7 @@ where
     ///
     /// This method passes the `no_annotations` and `no_record` parameters to the API.
     fn reverse(&self, point: &Point<T>) -> Result<Option<String>, GeocodingError> {
-        let mut resp = self
+        let resp = self
             .client
             .get(&self.endpoint)
             .query(&[
@@ -282,9 +282,6 @@ where
             ])
             .send()?
             .error_for_status()?;
-        let res: OpencageResponse<T> = resp.json()?;
-        // it's OK to index into this vec, because reverse-geocoding only returns a single result
-        let address = &res.results[0];
         if let Some(headers) = resp.headers().get::<_>(XRL) {
             let mut lock = self.remaining.try_lock();
             if let Ok(ref mut mutex) = lock {
@@ -294,6 +291,9 @@ where
                 **mutex = Some(h)
             }
         }
+        let res: OpencageResponse<T> = resp.json()?;
+        // it's OK to index into this vec, because reverse-geocoding only returns a single result
+        let address = &res.results[0];
         Ok(Some(address.formatted.to_string()))
     }
 }
@@ -307,7 +307,7 @@ where
     ///
     /// This method passes the `no_annotations` and `no_record` parameters to the API.
     fn forward(&self, place: &str) -> Result<Vec<Point<T>>, GeocodingError> {
-        let mut resp = self
+        let resp = self
             .client
             .get(&self.endpoint)
             .query(&[
@@ -318,7 +318,6 @@ where
             ])
             .send()?
             .error_for_status()?;
-        let res: OpencageResponse<T> = resp.json()?;
         if let Some(headers) = resp.headers().get::<_>(XRL) {
             let mut lock = self.remaining.try_lock();
             if let Ok(ref mut mutex) = lock {
@@ -328,6 +327,7 @@ where
                 **mutex = Some(h)
             }
         }
+        let res: OpencageResponse<T> = resp.json()?;
         Ok(res
             .results
             .iter()

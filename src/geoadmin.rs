@@ -184,7 +184,7 @@ impl GeoAdmin {
             query.push((&"limit", &limit));
         }
 
-        let mut resp = self
+        let resp = self
             .client
             .get(&format!("{}SearchServer", self.endpoint))
             .query(&query)
@@ -210,7 +210,7 @@ where
     ///
     /// This method passes the `type`,  `origins`, `limit` and `sr` parameter to the API.
     fn forward(&self, place: &str) -> Result<Vec<Point<T>>, GeocodingError> {
-        let mut resp = self
+        let resp = self
             .client
             .get(&format!("{}SearchServer", self.endpoint))
             .query(&[
@@ -241,7 +241,7 @@ where
     ///
     /// This method passes the `format` parameter to the API.
     fn reverse(&self, point: &Point<T>) -> Result<Option<String>, GeocodingError> {
-        let mut resp = self
+        let resp = self
             .client
             .get(&format!("{}MapServer/identify", self.endpoint))
             .query(&[
