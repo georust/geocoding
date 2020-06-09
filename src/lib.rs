@@ -15,6 +15,16 @@
 //! `Geocoding` **always** requires [`Point`](struct.Point.html) data in `[Longitude, Latitude]` (`x, y`) order,
 //! and returns data in that order.
 //!
+//! ### Usage of rustls
+//!
+//! If you like to use [rustls](https://github.com/ctz/rustls) instead of OpenSSL
+//! you can enable the `rustls-tls` feature in your `Cargo.toml`:
+//!
+//!```toml
+//![dependencies]
+//!geocoding = { version = "*", default-features = false, features = ["rustls-tls"] }
+//!```
+
 static UA_STRING: &str = "Rust-Geocoding";
 
 use chrono;
