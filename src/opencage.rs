@@ -47,6 +47,7 @@ macro_rules! add_optional_param {
     };
 }
 
+// Please see the [API documentation](https://opencagedata.com/api#forward-opt) for details.
 #[derive(Default)]
 pub struct Parameters<'a> {
     pub language: Option<&'a str>,
