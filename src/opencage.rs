@@ -525,7 +525,7 @@ where
 }
 
 /// A forward geocoding result
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Results<T>
 where
     T: Float,
@@ -539,7 +539,7 @@ where
 }
 
 /// Annotations pertaining to the geocoding result
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Annotations<T>
 where
     T: Float,
@@ -560,7 +560,7 @@ where
 }
 
 /// Currency metadata
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Currency {
     pub alternate_symbols: Option<Vec<String>>,
     pub decimal_mark: String,
@@ -578,14 +578,14 @@ pub struct Currency {
 }
 
 /// Sunrise and sunset metadata
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sun {
     pub rise: HashMap<String, i64>,
     pub set: HashMap<String, i64>,
 }
 
 /// Timezone metadata
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Timezone {
     pub name: String,
     pub now_in_dst: i16,
@@ -612,7 +612,7 @@ pub struct Timestamp {
 }
 
 /// Bounding-box metadata
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bounds<T>
 where
     T: Float,
