@@ -17,10 +17,11 @@
 //! ```
 //! use geocoding::{Opencage, Point, Reverse};
 //!
-//! let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+//! let mut oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+//! oc.parameters.language = Some("fr");
 //! let p = Point::new(2.12870, 41.40139);
 //! let res = oc.reverse(&p);
-//! // "Carrer de Calatrava, 68, 08017 Barcelona, Spain"
+//! // "Carrer de Calatrava, 68, 08017 Barcelone, Espagne"
 //! println!("{:?}", res.unwrap());
 //! ```
 use crate::chrono::naive::serde::ts_seconds::deserialize as from_ts;
@@ -37,6 +38,32 @@ use num_traits::Float;
 use serde::Deserializer;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+
+macro_rules! add_optional_param {
+    ($query:expr, $param:expr, $name:expr) => {
+        if let Some(p) = $param {
+            $query.push(($name, p))
+        }
+    };
+}
+
+// Please see the [API documentation](https://opencagedata.com/api#forward-opt) for details.
+#[derive(Default)]
+pub struct Parameters<'a> {
+    pub language: Option<&'a str>,
+    pub countrycode: Option<&'a str>,
+    pub limit: Option<&'a str>,
+}
+
+impl<'a> Parameters<'a> {
+    fn as_query(&self) -> Vec<(&'a str, &'a str)> {
+        let mut query = vec![];
+        add_optional_param!(query, self.language, "language");
+        add_optional_param!(query, self.countrycode, "countrycode");
+        add_optional_param!(query, self.limit, "limit");
+        query
+    }
+}
 
 pub fn deserialize_string_or_int<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
@@ -62,14 +89,15 @@ static XRL: &str = "x-ratelimit-remaining";
 pub static NOBOX: Option<InputBounds<f64>> = None::<InputBounds<f64>>;
 
 /// An instance of the Opencage Geocoding service
-pub struct Opencage {
+pub struct Opencage<'a> {
     api_key: String,
     client: Client,
     endpoint: String,
+    pub parameters: Parameters<'a>,
     remaining: Arc<Mutex<Option<i32>>>,
 }
 
-impl Opencage {
+impl<'a> Opencage<'a> {
     /// Create a new OpenCage geocoding instance
     pub fn new(api_key: String) -> Self {
         let mut headers = HeaderMap::new();
@@ -78,9 +106,12 @@ impl Opencage {
             .default_headers(headers)
             .build()
             .expect("Couldn't build a client!");
+
+        let parameters = Parameters::default();
         Opencage {
             api_key,
             client,
+            parameters,
             endpoint: "https://api.opencagedata.com/geocode/v1/json".to_string(),
             remaining: Arc::new(Mutex::new(None)),
         }
@@ -117,23 +148,24 @@ impl Opencage {
     where
         T: Float + DeserializeOwned,
     {
+        let q = format!(
+            "{}, {}",
+            // OpenCage expects lat, lon order
+            (&point.y().to_f64().unwrap().to_string()),
+            &point.x().to_f64().unwrap().to_string()
+        );
+        let mut query = vec![
+            ("q", q.as_str()),
+            (&"key", &self.api_key),
+            (&"no_annotations", "0"),
+            (&"no_record", "1"),
+        ];
+        query.extend(self.parameters.as_query());
+
         let resp = self
             .client
             .get(&self.endpoint)
-            .query(&[
-                (
-                    &"q",
-                    &format!(
-                        "{}, {}",
-                        // OpenCage expects lat, lon order
-                        (&point.y().to_f64().unwrap().to_string()),
-                        &point.x().to_f64().unwrap().to_string()
-                    ),
-                ),
-                (&"key", &self.api_key),
-                (&"no_annotations", &String::from("0")),
-                (&"no_record", &String::from("1")),
-            ])
+            .query(&query)
             .send()?
             .error_for_status()?;
         // it's OK to index into this vec, because reverse-geocoding only returns a single result
@@ -229,11 +261,14 @@ impl Opencage {
             ("no_annotations", &ann),
             ("no_record", &record),
         ];
+
         // If search bounds are passed, use them
         if let Some(bds) = bounds.into() {
             bd = String::from(bds);
             query.push(("bounds", &bd));
         }
+        query.extend(self.parameters.as_query());
+
         let resp = self
             .client
             .get(&self.endpoint)
@@ -254,7 +289,7 @@ impl Opencage {
     }
 }
 
-impl<T> Reverse<T> for Opencage
+impl<'a, T> Reverse<T> for Opencage<'a>
 where
     T: Float + DeserializeOwned,
 {
@@ -263,23 +298,24 @@ where
     ///
     /// This method passes the `no_annotations` and `no_record` parameters to the API.
     fn reverse(&self, point: &Point<T>) -> Result<Option<String>, GeocodingError> {
+        let q = format!(
+            "{}, {}",
+            // OpenCage expects lat, lon order
+            (&point.y().to_f64().unwrap().to_string()),
+            &point.x().to_f64().unwrap().to_string()
+        );
+        let mut query = vec![
+            ("q", q.as_str()),
+            ("key", &self.api_key),
+            ("no_annotations", "1"),
+            ("no_record", "1"),
+        ];
+        query.extend(self.parameters.as_query());
+
         let resp = self
             .client
             .get(&self.endpoint)
-            .query(&[
-                (
-                    &"q",
-                    &format!(
-                        "{}, {}",
-                        // OpenCage expects lat, lon order
-                        (&point.y().to_f64().unwrap().to_string()),
-                        &point.x().to_f64().unwrap().to_string()
-                    ),
-                ),
-                (&"key", &self.api_key),
-                (&"no_annotations", &String::from("1")),
-                (&"no_record", &String::from("1")),
-            ])
+            .query(&query)
             .send()?
             .error_for_status()?;
         if let Some(headers) = resp.headers().get::<_>(XRL) {
@@ -298,7 +334,7 @@ where
     }
 }
 
-impl<T> Forward<T> for Opencage
+impl<'a, T> Forward<T> for Opencage<'a>
 where
     T: Float + DeserializeOwned,
 {
@@ -307,15 +343,18 @@ where
     ///
     /// This method passes the `no_annotations` and `no_record` parameters to the API.
     fn forward(&self, place: &str) -> Result<Vec<Point<T>>, GeocodingError> {
+        let mut query = vec![
+            ("q", place),
+            ("key", &self.api_key),
+            ("no_annotations", "1"),
+            ("no_record", "1"),
+        ];
+        query.extend(self.parameters.as_query());
+
         let resp = self
             .client
             .get(&self.endpoint)
-            .query(&[
-                (&"q", place),
-                (&"key", &self.api_key),
-                (&"no_annotations", &String::from("1")),
-                (&"no_record", &String::from("1")),
-            ])
+            .query(&query)
             .send()?
             .error_for_status()?;
         if let Some(headers) = resp.headers().get::<_>(XRL) {
@@ -486,7 +525,7 @@ where
 }
 
 /// A forward geocoding result
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Results<T>
 where
     T: Float,
@@ -500,7 +539,7 @@ where
 }
 
 /// Annotations pertaining to the geocoding result
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Annotations<T>
 where
     T: Float,
@@ -521,7 +560,7 @@ where
 }
 
 /// Currency metadata
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Currency {
     pub alternate_symbols: Option<Vec<String>>,
     pub decimal_mark: String,
@@ -539,14 +578,14 @@ pub struct Currency {
 }
 
 /// Sunrise and sunset metadata
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sun {
     pub rise: HashMap<String, i64>,
     pub set: HashMap<String, i64>,
 }
 
 /// Timezone metadata
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Timezone {
     pub name: String,
     pub now_in_dst: i16,
@@ -573,7 +612,7 @@ pub struct Timestamp {
 }
 
 /// Bounding-box metadata
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bounds<T>
 where
     T: Float,
@@ -597,6 +636,18 @@ mod test {
             Some("Carrer de Calatrava, 68, 08017 Barcelona, Spain".to_string())
         );
     }
+
+    #[test]
+    fn reverse_test_with_params() {
+        let mut oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+        oc.parameters.language = Some("fr");
+        let p = Point::new(2.12870, 41.40139);
+        let res = oc.reverse(&p);
+        assert_eq!(
+            res.unwrap(),
+            Some("Carrer de Calatrava, 68, 08017 Barcelone, Espagne".to_string())
+        );
+    }
     #[test]
     fn forward_test() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
@@ -612,7 +663,8 @@ mod test {
     }
     #[test]
     fn reverse_full_test() {
-        let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+        let mut oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+        oc.parameters.language = Some("fr");
         let p = Point::new(2.12870, 41.40139);
         let res = oc.reverse_full(&p).unwrap();
         let first_result = &res.results[0];
