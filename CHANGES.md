@@ -1,5 +1,16 @@
 # Changes
 
+## 0.3.0
+
+- Update reqwest and hyper
+  - <https://github.com/georust/geocoding/pull/35>
+- Upgrade geo-types
+  - <https://github.com/georust/geocoding/commit/97f620688ff874f1092a6cecbe731cf15d0c3e55>
+- Allow optional parameters for Opencage
+  - <https://github.com/georust/geocoding/pull/38>
+- Derive `Clone` for Opencage results
+  - <https://github.com/georust/geocoding/pull/38/commits/61019fe0da2bb06580fcf7188eb2381a67d564d2>
+
 ## 0.2.0
 
 - Made Opencage and Openstreetmap responses/results serializable so it's easier to store them afterwards
