@@ -1,11 +1,9 @@
-//! The [GeoAdmin] (https://api3.geo.admin.ch) provider for geocoding in Switzerland exclusively.
+//! The [GeoAdmin](https://api3.geo.admin.ch) provider for geocoding in Switzerland exclusively.
 //!
-//! Based on the [Search API] (https://api3.geo.admin.ch/services/sdiservices.html#search)
-//! and [Identify Features API] (https://api3.geo.admin.ch/services/sdiservices.html#identify-features)
+//! Based on the [Search API](https://api3.geo.admin.ch/services/sdiservices.html#search)
+//! and [Identify Features API](https://api3.geo.admin.ch/services/sdiservices.html#identify-features)
 //!
-//! It uses the local swiss coordinate reference system [CH1903+ / LV95]
-//! (https://www.swisstopo.admin.ch/en/knowledge-facts/surveying-geodesy/reference-frames/local/lv95.html)
-//! (EPSG:2056) for input and output coordinates. Be aware of the switched axis names!
+//! While GeoAdmin API is free, please respect their fair usage usage policy.
 //!
 //! ### Example
 //!
@@ -15,7 +13,7 @@
 //! let geoadmin = GeoAdmin::new();
 //! let address = "Seftigenstrasse 264, 3084 Wabern";
 //! let res = geoadmin.forward(&address);
-//! assert_eq!(res.unwrap(), vec![Point::new(2_600_968.75, 1_197_427.0)]);
+//! assert_eq!(res.unwrap(), vec![Point::new(7.451352119445801, 46.92793655395508)]);
 //! ```
 use crate::Deserialize;
 use crate::GeocodingError;
@@ -24,7 +22,7 @@ use crate::Point;
 use crate::UA_STRING;
 use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
 use crate::{Forward, Reverse};
-use num_traits::Float;
+use num_traits::{Float, Pow};
 
 /// An instance of the GeoAdmin geocoding service
 pub struct GeoAdmin {
@@ -55,8 +53,8 @@ where
     /// use geocoding::geoadmin::{GeoAdminParams};
     ///
     /// let bbox = InputBounds::new(
-    ///     (2600967.75, 1197426.0),
-    ///     (2600969.75, 1197428.0),
+    ///     (7.4513398, 46.92792859),
+    ///     (7.4513662, 46.9279467),
     /// );
     /// let params = GeoAdminParams::new(&"Seftigenstrasse Bern")
     ///     .with_origins("address")
@@ -138,17 +136,17 @@ impl GeoAdmin {
     ///
     /// let geoadmin = GeoAdmin::new();
     /// let bbox = InputBounds::new(
-    ///     (2600967.75, 1197426.0),
-    ///     (2600969.75, 1197428.0),
+    ///     (7.4513398, 46.92792859),
+    ///     (7.4513662, 46.9279467),
     /// );
     /// let params = GeoAdminParams::new(&"Seftigenstrasse Bern")
     ///     .with_origins("address")
     ///     .with_bbox(&bbox)
     ///     .build();
     /// let res: GeoAdminForwardResponse<f64> = geoadmin.forward_full(&params).unwrap();
-    /// let result = &res.results[0];
+    /// let result = &res.features[0];
     /// assert_eq!(
-    ///     result.attrs.label,
+    ///     result.properties.label,
     ///     "Seftigenstrasse 264 <b>3084 Wabern</b>",
     /// );
     /// ```
@@ -160,28 +158,30 @@ impl GeoAdmin {
         T: Float,
         for<'de> T: Deserialize<'de>,
     {
-        let searchtype = String::from("locations");
-        let sr = String::from("2056");
-
         // For lifetime issues
         let bbox;
         let limit;
 
         let mut query = vec![
-            (&"searchText", params.searchtext),
-            (&"type", &searchtype),
-            (&"origins", params.origins),
-            (&"sr", &sr),
+            ("searchText", params.searchtext),
+            ("type", "locations"),
+            ("origins", params.origins),
+            ("sr", "4326"),
+            ("geometryFormat", "geojson"),
         ];
 
         if let Some(bb) = params.bbox {
-            bbox = String::from(*bb);
-            query.push((&"bbox", &bbox));
+            let bb = InputBounds::new(
+                wgs84_to_lv03(&bb.minimum_lonlat),
+                wgs84_to_lv03(&bb.maximum_lonlat),
+            );
+            bbox = String::from(bb);
+            query.push(("bbox", &bbox));
         }
 
         if let Some(lim) = params.limit {
             limit = lim.to_string();
-            query.push((&"limit", &limit));
+            query.push(("limit", &limit));
         }
 
         let resp = self
@@ -214,19 +214,20 @@ where
             .client
             .get(&format!("{}SearchServer", self.endpoint))
             .query(&[
-                (&"searchText", place),
-                (&"type", &String::from("locations")),
-                (&"origins", &String::from("address")),
-                (&"limit", &String::from("1")),
-                (&"sr", &String::from("2056")),
+                ("searchText", place),
+                ("type", "locations"),
+                ("origins", "address"),
+                ("limit", "1"),
+                ("sr", "4326"),
+                ("geometryFormat", "geojson"),
             ])
             .send()?
             .error_for_status()?;
         let res: GeoAdminForwardResponse<T> = resp.json()?;
         Ok(res
-            .results
+            .features
             .iter()
-            .map(|res| Point::new(res.attrs.y, res.attrs.x)) // y = west-east, x = north-south
+            .map(|feature| Point::new(feature.properties.lon, feature.properties.lat)) // y = west-east, x = north-south
             .collect())
     }
 }
@@ -246,24 +247,22 @@ where
             .get(&format!("{}MapServer/identify", self.endpoint))
             .query(&[
                 (
-                    &"geometry",
-                    &format!(
+                    "geometry",
+                    format!(
                         "{},{}",
                         point.x().to_f64().unwrap(),
                         point.y().to_f64().unwrap()
-                    ),
+                    )
+                    .as_str(),
                 ),
-                (&"geometryType", &String::from("esriGeometryPoint")),
-                (
-                    &"layers",
-                    &String::from("all:ch.bfs.gebaeude_wohnungs_register"),
-                ),
-                (&"mapExtent", &String::from("0,0,100,100")),
-                (&"imageDisplay", &String::from("100,100,100")),
-                (&"tolerance", &String::from("50")),
-                (&"geometryFormat", &String::from("geojson")),
-                (&"sr", &String::from("2056")),
-                (&"lang", &String::from("en")),
+                ("geometryType", "esriGeometryPoint"),
+                ("layers", "all:ch.bfs.gebaeude_wohnungs_register"),
+                ("mapExtent", "0,0,100,100"),
+                ("imageDisplay", "100,100,100"),
+                ("tolerance", "50"),
+                ("geometryFormat", "geojson"),
+                ("sr", "4326"),
+                ("lang", "en"),
             ])
             .send()?
             .error_for_status()?;
@@ -271,8 +270,8 @@ where
         if !res.results.is_empty() {
             let properties = &res.results[0].properties;
             let address = format!(
-                "{} {}, {} {}",
-                properties.strname1, properties.deinr, properties.plz4, properties.plzname
+                "{}, {} {}",
+                properties.strname_deinr, properties.dplz4, properties.dplzname
             );
             Ok(Some(address))
         } else {
@@ -280,31 +279,48 @@ where
         }
     }
 }
-/// The top-level full JSON response returned by a forward-geocoding request
+
+// Approximately transform Point from WGS84 to LV03
+//
+// See [the documentation](https://www.swisstopo.admin.ch/content/swisstopo-internet/en/online/calculation-services/_jcr_content/contentPar/tabs/items/documents_publicatio/tabPar/downloadlist/downloadItems/19_1467104393233.download/ch1903wgs84_e.pdf) for more details
+fn wgs84_to_lv03<T>(p: &Point<T>) -> Point<f64>
+where
+    T: Float,
+{
+    let lambda = (p.x().to_f64().unwrap() * 3600.0 - 26782.5) / 10000.0;
+    let phi = (p.y().to_f64().unwrap() * 3600.0 - 169028.66) / 10000.0;
+    let x = 2600072.37 + 211455.93 * lambda
+        - 10938.51 * lambda * phi
+        - 0.36 * lambda * phi.pow(2)
+        - 44.54 * lambda.pow(3);
+    let y = 1200147.07 + 308807.95 * phi + 3745.25 * lambda.pow(2) + 76.63 * phi.pow(2)
+        - 194.56 * lambda.pow(2) * phi
+        + 119.79 * phi.pow(3);
+    Point::new(x - 2000000.0, y - 1000000.0)
+}
+/// The top-level full JSON (GeoJSON Feature Collection) response returned by a forward-geocoding request
 ///
 /// See [the documentation](https://api3.geo.admin.ch/services/sdiservices.html#search) for more details
 ///
 ///```json
 ///{
-///     "results": [
+///     "type": "FeatureCollection",
+///     "features": [
 ///         {
-///             "id": 1420809,
-///             "weight": 1512,
-///             "attrs": {
+///             "properties": {
 ///                 "origin": "address",
 ///                 "geom_quadindex": "021300220302203002031",
-///                 "@geodist": 8.957613945007324,
+///                 "weight": 1512,
 ///                 "zoomlevel": 10,
-///                 "featureId": "1272199_0",
 ///                 "lon": 7.451352119445801,
 ///                 "detail": "seftigenstrasse 264 3084 wabern 355 koeniz ch be",
 ///                 "rank": 7,
-///                 "geom_st_box2d": "BOX(2600968.668 1197426.954,2600968.668 1197426.954)",
 ///                 "lat": 46.92793655395508,
 ///                 "num": 264,
 ///                 "y": 2600968.75,
 ///                 "x": 1197427.0,
 ///                 "label": "Seftigenstrasse 264 <b>3084 Wabern</b>"
+///                 "id": 1420809,
 ///             }
 ///         }
 ///     ]
@@ -315,34 +331,27 @@ pub struct GeoAdminForwardResponse<T>
 where
     T: Float,
 {
-    pub results: Vec<GeoAdminForwardLocation<T>>,
+    pub features: Vec<GeoAdminForwardLocation<T>>,
 }
 
-/// A geocoding result
+/// A forward geocoding location
 #[derive(Debug, Deserialize)]
 pub struct GeoAdminForwardLocation<T>
 where
     T: Float,
 {
-    id: usize,
-    pub weight: u32,
-    pub attrs: ForwardLocationAttributes<T>,
+    id: Option<usize>,
+    pub properties: ForwardLocationProperties<T>,
 }
 
-/// Geocoding result attributes
+/// Forward Geocoding location attributes
 #[derive(Clone, Debug, Deserialize)]
-pub struct ForwardLocationAttributes<T> {
-    pub detail: String,
+pub struct ForwardLocationProperties<T> {
     pub origin: String,
-    #[serde(rename = "layerBodId")]
-    pub layer_bod_id: Option<String>,
-    pub rank: u32,
-    #[serde(rename = "featureId")]
-    pub feature_id: Option<String>,
     pub geom_quadindex: String,
-    #[serde(rename = "@geodist")]
-    pub geodist: Option<T>,
-    pub geom_st_box2d: String,
+    pub weight: u32,
+    pub rank: u32,
+    pub detail: String,
     pub lat: T,
     pub lon: T,
     pub num: Option<usize>,
@@ -352,7 +361,7 @@ pub struct ForwardLocationAttributes<T> {
     pub zoomlevel: u32,
 }
 
-/// The top-level full JSON response returned by a reverse-geocoding request
+/// The top-level full JSON (GeoJSON FeatureCollection) response returned by a reverse-geocoding request
 ///
 /// See [the documentation](https://api3.geo.admin.ch/services/sdiservices.html#identify-features) for more details
 ///
@@ -360,29 +369,14 @@ pub struct ForwardLocationAttributes<T> {
 /// {
 ///     "results": [
 ///         {
-///             "featureId": "1272199_0",
+///             "type": "Feature"
+///             "id": "1272199_0"
 ///             "attributes": {
-///                 "gdename": "K\u00f6niz",
-///                 "strname1": "Seftigenstrasse",
-///                 "strname_de": "Seftigenstrasse",
-///                 "gdekt": "BE",
-///                 "label": "Seftigenstrasse",
-///                 "gstat": 1004,
-///                 "egid": 1272199,
-///                 "dstrid": 1019330,
-///                 "strname_fr": null,
-///                 "strname_rm": null,
-///                 "gdenr": 355,
-///                 "plz6": 308400,
-///                 "bgdi_created": "22.12.2019",
-///                 "plz4": 3084,
-///                 "plzname": "Wabern",
-///                 "strname_it": null,
-///                 "deinr": "264"
+///                 "xxx": "xxx",
+///                 "...": "...",
 ///             },
 ///             "layerBodId": "ch.bfs.gebaeude_wohnungs_register",
 ///             "layerName": "Register of Buildings and Dwellings",
-///             "id": "1272199_0"
 ///         }
 ///     ]
 /// }
@@ -392,7 +386,7 @@ pub struct GeoAdminReverseResponse {
     pub results: Vec<GeoAdminReverseLocation>,
 }
 
-/// A geocoding result
+/// A reverse geocoding result
 #[derive(Debug, Deserialize)]
 pub struct GeoAdminReverseLocation {
     id: String,
@@ -405,26 +399,24 @@ pub struct GeoAdminReverseLocation {
     pub properties: ReverseLocationAttributes,
 }
 
-/// Geocoding result attributes
+/// Reverse geocoding result attributes
 #[derive(Clone, Debug, Deserialize)]
 pub struct ReverseLocationAttributes {
-    pub gdenr: u32,
-    pub gdename: String,
-    pub strname1: String,
-    pub strname_de: Option<String>,
-    pub strname_fr: Option<String>,
-    pub strname_rm: Option<String>,
-    pub strname_it: Option<String>,
+    pub egid: Option<String>,
+    pub ggdenr: u32,
+    pub ggdename: String,
     pub gdekt: String,
+    pub edid: Option<String>,
+    pub egaid: u32,
+    pub deinr: Option<String>,
+    pub dplz4: u32,
+    pub dplzname: String,
+    pub egrid: Option<String>,
+    pub esid: u32,
+    pub strname: Vec<String>,
+    pub strsp: Vec<String>,
+    pub strname_deinr: String,
     pub label: String,
-    pub gstat: u32,
-    pub egid: u32,
-    pub dstrid: u32,
-    pub plz6: u32,
-    pub bgdi_created: String,
-    pub plz4: u32,
-    pub plzname: String,
-    pub deinr: String,
 }
 
 #[cfg(test)]
@@ -437,20 +429,26 @@ mod test {
             GeoAdmin::new_with_endpoint("https://api3.geo.admin.ch/rest/services/api/".to_string());
         let address = "Seftigenstrasse 264, 3084 Wabern";
         let res = geoadmin.forward(&address);
-        assert_eq!(res.unwrap(), vec![Point::new(2_600_968.75, 1_197_427.0)]);
+        assert_eq!(
+            res.unwrap(),
+            vec![Point::new(7.451352119445801, 46.92793655395508)]
+        );
     }
 
     #[test]
     fn forward_full_test() {
         let geoadmin = GeoAdmin::new();
-        let bbox = InputBounds::new((2_600_967.75, 1_197_426.0), (2_600_969.75, 1_197_428.0));
+        let bbox = InputBounds::new((7.4513398, 46.92792859), (7.4513662, 46.9279467));
         let params = GeoAdminParams::new(&"Seftigenstrasse Bern")
             .with_origins("address")
             .with_bbox(&bbox)
             .build();
         let res: GeoAdminForwardResponse<f64> = geoadmin.forward_full(&params).unwrap();
-        let result = &res.results[0];
-        assert_eq!(result.attrs.label, "Seftigenstrasse 264 <b>3084 Wabern</b>",);
+        let result = &res.features[0];
+        assert_eq!(
+            result.properties.label,
+            "Seftigenstrasse 264 <b>3084 Wabern</b>",
+        );
     }
 
     #[test]
@@ -458,13 +456,16 @@ mod test {
         let geoadmin = GeoAdmin::new();
         let address = "Seftigenstrasse 264, 3084 Wabern";
         let res = geoadmin.forward(&address);
-        assert_eq!(res.unwrap(), vec![Point::new(2_600_968.75, 1_197_427.0)]);
+        assert_eq!(
+            res.unwrap(),
+            vec![Point::new(7.451352119445801, 46.92793655395508)]
+        );
     }
 
     #[test]
     fn reverse_test() {
         let geoadmin = GeoAdmin::new();
-        let p = Point::new(2_600_968.75, 1_197_427.0);
+        let p = Point::new(7.451352119445801, 46.92793655395508);
         let res = geoadmin.reverse(&p);
         assert_eq!(
             res.unwrap(),
