@@ -174,12 +174,14 @@ impl GeoAdmin {
             ("geometryFormat", "geojson"),
         ];
 
-        if let Some(bb) = params.bbox {
-            let bb = InputBounds::new(
-                wgs84_to_lv03(&bb.minimum_lonlat),
-                wgs84_to_lv03(&bb.maximum_lonlat),
-            );
-            bbox = String::from(bb);
+        if let Some(bb) = params.bbox.cloned().as_mut() {
+            if vec!["4326", "3857"].contains(&self.sr.as_str()) {
+                *bb = InputBounds::new(
+                    wgs84_to_lv03(&bb.minimum_lonlat),
+                    wgs84_to_lv03(&bb.maximum_lonlat),
+                );
+            }
+            bbox = String::from(*bb);
             query.push(("bbox", &bbox));
         }
 
@@ -238,11 +240,19 @@ where
             .send()?
             .error_for_status()?;
         let res: GeoAdminForwardResponse<T> = resp.json()?;
-        Ok(res
-            .features
-            .iter()
-            .map(|feature| Point::new(feature.properties.lon, feature.properties.lat)) // y = west-east, x = north-south
-            .collect())
+        // return easting & northing consistent
+        let results = if vec!["2056", "21781"].contains(&self.sr.as_str()) {
+            res.features
+                .iter()
+                .map(|feature| Point::new(feature.properties.y, feature.properties.x)) // y = west-east, x = north-south
+                .collect()
+        } else {
+            res.features
+                .iter()
+                .map(|feature| Point::new(feature.properties.x, feature.properties.y)) // x = west-east, y = north-south
+                .collect()
+        };
+        Ok(results)
     }
 }
 
@@ -297,7 +307,7 @@ where
 // Approximately transform Point from WGS84 to LV03
 //
 // See [the documentation](https://www.swisstopo.admin.ch/content/swisstopo-internet/en/online/calculation-services/_jcr_content/contentPar/tabs/items/documents_publicatio/tabPar/downloadlist/downloadItems/19_1467104393233.download/ch1903wgs84_e.pdf) for more details
-fn wgs84_to_lv03<T>(p: &Point<T>) -> Point<f64>
+fn wgs84_to_lv03<T>(p: &Point<T>) -> Point<T>
 where
     T: Float,
 {
@@ -310,7 +320,10 @@ where
     let y = 1200147.07 + 308807.95 * phi + 3745.25 * lambda.pow(2) + 76.63 * phi.pow(2)
         - 194.56 * lambda.pow(2) * phi
         + 119.79 * phi.pow(3);
-    Point::new(x - 2000000.0, y - 1000000.0)
+    Point::new(
+        T::from(x - 2000000.0).unwrap(),
+        T::from(y - 1000000.0).unwrap(),
+    )
 }
 /// The top-level full JSON (GeoJSON Feature Collection) response returned by a forward-geocoding request
 ///
@@ -438,6 +451,14 @@ mod test {
     use super::*;
 
     #[test]
+    fn new_with_sr_forward_test() {
+        let geoadmin = GeoAdmin::new().with_sr("2056");
+        let address = "Seftigenstrasse 264, 3084 Wabern";
+        let res = geoadmin.forward(&address);
+        assert_eq!(res.unwrap(), vec![Point::new(2_600_968.75, 1_197_427.0)]);
+    }
+
+    #[test]
     fn new_with_endpoint_forward_test() {
         let geoadmin =
             GeoAdmin::new().with_endpoint("https://api3.geo.admin.ch/rest/services/api/");
@@ -446,6 +467,22 @@ mod test {
         assert_eq!(
             res.unwrap(),
             vec![Point::new(7.451352119445801, 46.92793655395508)]
+        );
+    }
+
+    #[test]
+    fn with_sr_forward_full_test() {
+        let geoadmin = GeoAdmin::new().with_sr("2056");
+        let bbox = InputBounds::new((2_600_967.75, 1_197_426.0), (2_600_969.75, 1_197_428.0));
+        let params = GeoAdminParams::new(&"Seftigenstrasse Bern")
+            .with_origins("address")
+            .with_bbox(&bbox)
+            .build();
+        let res: GeoAdminForwardResponse<f64> = geoadmin.forward_full(&params).unwrap();
+        let result = &res.features[0];
+        assert_eq!(
+            result.properties.label,
+            "Seftigenstrasse 264 <b>3084 Wabern</b>",
         );
     }
 
@@ -473,6 +510,17 @@ mod test {
         assert_eq!(
             res.unwrap(),
             vec![Point::new(7.451352119445801, 46.92793655395508)]
+        );
+    }
+
+    #[test]
+    fn with_sr_reverse_test() {
+        let geoadmin = GeoAdmin::new().with_sr("2056");
+        let p = Point::new(2_600_968.75, 1_197_427.0);
+        let res = geoadmin.reverse(&p);
+        assert_eq!(
+            res.unwrap(),
+            Some("Seftigenstrasse 264, 3084 Wabern".to_string()),
         );
     }
 
