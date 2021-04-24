@@ -3,7 +3,7 @@
 //! Based on the [Search API](https://api3.geo.admin.ch/services/sdiservices.html#search)
 //! and [Identify Features API](https://api3.geo.admin.ch/services/sdiservices.html#identify-features)
 //!
-//! While GeoAdmin API is free, please respect their fair usage usage policy.
+//! While GeoAdmin API is free, please respect their fair usage policy.
 //!
 //! ### Example
 //!
@@ -28,6 +28,7 @@ use num_traits::{Float, Pow};
 pub struct GeoAdmin {
     client: Client,
     endpoint: String,
+    sr: String,
 }
 
 /// An instance of a parameter builder for GeoAdmin geocoding
@@ -100,22 +101,25 @@ where
 }
 
 impl GeoAdmin {
-    /// Create a new GeoAdmin geocoding instance using the default endpoint
+    /// Create a new GeoAdmin geocoding instance using the default endpoint and sr
     pub fn new() -> Self {
-        GeoAdmin::new_with_endpoint("https://api3.geo.admin.ch/rest/services/api/".to_string())
+        GeoAdmin::default()
     }
 
-    /// Create a new GeoAdmin geocoding instance with a custom endpoint.
+    /// Set a custom endpoint of a GeoAdmin geocoding instance
     ///
     /// Endpoint should include a trailing slash (i.e. "https://api3.geo.admin.ch/rest/services/api/")
-    pub fn new_with_endpoint(endpoint: String) -> Self {
-        let mut headers = HeaderMap::new();
-        headers.insert(USER_AGENT, HeaderValue::from_static(UA_STRING));
-        let client = Client::builder()
-            .default_headers(headers)
-            .build()
-            .expect("Couldn't build a client!");
-        GeoAdmin { client, endpoint }
+    pub fn with_endpoint(mut self, endpoint: &str) -> Self {
+        self.endpoint = endpoint.to_owned();
+        self
+    }
+
+    /// Set a custom sr of a GeoAdmin geocoding instance
+    ///
+    /// Supported values: 21781 (LV03), 2056 (LV95), 4326 (WGS84) and 3857 (Web Pseudo-Mercator)
+    pub fn with_sr(mut self, sr: &str) -> Self {
+        self.sr = sr.to_owned();
+        self
     }
 
     /// A forward-geocoding search of a location, returning a full detailed response
@@ -166,7 +170,7 @@ impl GeoAdmin {
             ("searchText", params.searchtext),
             ("type", "locations"),
             ("origins", params.origins),
-            ("sr", "4326"),
+            ("sr", &self.sr),
             ("geometryFormat", "geojson"),
         ];
 
@@ -197,7 +201,17 @@ impl GeoAdmin {
 
 impl Default for GeoAdmin {
     fn default() -> Self {
-        Self::new()
+        let mut headers = HeaderMap::new();
+        headers.insert(USER_AGENT, HeaderValue::from_static(UA_STRING));
+        let client = Client::builder()
+            .default_headers(headers)
+            .build()
+            .expect("Couldn't build a client!");
+        GeoAdmin {
+            client,
+            endpoint: "https://api3.geo.admin.ch/rest/services/api/".to_string(),
+            sr: "4326".to_string(),
+        }
     }
 }
 
@@ -218,7 +232,7 @@ where
                 ("type", "locations"),
                 ("origins", "address"),
                 ("limit", "1"),
-                ("sr", "4326"),
+                ("sr", &self.sr),
                 ("geometryFormat", "geojson"),
             ])
             .send()?
@@ -261,7 +275,7 @@ where
                 ("imageDisplay", "100,100,100"),
                 ("tolerance", "50"),
                 ("geometryFormat", "geojson"),
-                ("sr", "4326"),
+                ("sr", &self.sr),
                 ("lang", "en"),
             ])
             .send()?
@@ -426,7 +440,7 @@ mod test {
     #[test]
     fn new_with_endpoint_forward_test() {
         let geoadmin =
-            GeoAdmin::new_with_endpoint("https://api3.geo.admin.ch/rest/services/api/".to_string());
+            GeoAdmin::new().with_endpoint("https://api3.geo.admin.ch/rest/services/api/");
         let address = "Seftigenstrasse 264, 3084 Wabern";
         let res = geoadmin.forward(&address);
         assert_eq!(
