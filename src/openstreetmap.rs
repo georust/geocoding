@@ -107,10 +107,7 @@ impl Openstreetmap {
             .default_headers(headers)
             .build()
             .expect("Couldn't build a client!");
-        Openstreetmap {
-            client,
-            endpoint,
-        }
+        Openstreetmap { client, endpoint }
     }
 
     /// A forward-geocoding lookup of an address, returning a full detailed response
@@ -359,7 +356,7 @@ mod test {
             Openstreetmap::new_with_endpoint("https://nominatim.openstreetmap.org/".to_string());
         let address = "Schwabing, München";
         let res = osm.forward(&address);
-        assert_eq!(res.unwrap(), vec![Point::new(11.5761796, 48.1599218)]);
+        assert_eq!(res.unwrap(), vec![Point::new(11.5884858, 48.1700887)]);
     }
 
     #[test]
@@ -375,14 +372,10 @@ mod test {
             .build();
         let res: OpenstreetmapResponse<f64> = osm.forward_full(&params).unwrap();
         let result = res.features[0].properties.clone();
-        assert_eq!(
-            result.display_name,
-            "University College London, Euston Road, Holborn, Somers Town, London Borough of Camden, London, Greater London, England, NW1 2FB, United Kingdom",
-        );
-        assert_eq!(
-            result.address.unwrap().city.unwrap(),
-            "London Borough of Camden"
-        );
+        assert!(result
+            .display_name
+            .contains("London Borough of Camden, London, Greater London"));
+        assert_eq!(result.address.unwrap().city.unwrap(), "London");
     }
 
     #[test]
@@ -390,7 +383,7 @@ mod test {
         let osm = Openstreetmap::new();
         let address = "Schwabing, München";
         let res = osm.forward(&address);
-        assert_eq!(res.unwrap(), vec![Point::new(11.5761796, 48.1599218)]);
+        assert_eq!(res.unwrap(), vec![Point::new(11.5884858, 48.1700887)]);
     }
 
     #[test]
@@ -398,9 +391,9 @@ mod test {
         let osm = Openstreetmap::new();
         let p = Point::new(2.12870, 41.40139);
         let res = osm.reverse(&p);
-        assert_eq!(
-            res.unwrap(),
-            Some("68, Carrer de Calatrava, la Bonanova, les Tres Torres, Sarrià - Sant Gervasi, Barcelona, Barcelonès, Barcelona, Catalunya, 08017, España".to_string()),
-        );
+        assert!(res
+            .unwrap()
+            .unwrap()
+            .contains("Barcelona, Barcelonès, Barcelona, Catalunya"));
     }
 }
