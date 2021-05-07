@@ -656,8 +656,8 @@ mod test {
         assert_eq!(
             res.unwrap(),
             vec![Point(Coordinate {
-                x: 11.5761796,
-                y: 48.1599218
+                x: 11.5884858,
+                y: 48.1700887
             })]
         );
     }
