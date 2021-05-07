@@ -108,7 +108,7 @@ where
 /// let res: Vec<Point<f64>> = oc.forward(address).unwrap();
 /// assert_eq!(
 ///     res,
-///     vec![Point(Coordinate { x: 11.5761796, y: 48.1599218 })]
+///     vec![Point(Coordinate { x: 11.5884858, y: 48.1700887 })]
 /// );
 /// ```
 pub trait Forward<T>

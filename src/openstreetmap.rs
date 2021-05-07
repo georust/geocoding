@@ -14,7 +14,7 @@
 //! let osm = Openstreetmap::new();
 //! let address = "Schwabing, München";
 //! let res = osm.forward(&address);
-//! assert_eq!(res.unwrap(), vec![Point::new(11.5761796, 48.1599218)]);
+//! assert_eq!(res.unwrap(), vec![Point::new(11.5884858, 48.1700887)]);
 //! ```
 use crate::GeocodingError;
 use crate::InputBounds;
@@ -137,10 +137,7 @@ impl Openstreetmap {
     ///     .build();
     /// let res: OpenstreetmapResponse<f64> = osm.forward_full(&params).unwrap();
     /// let result = res.features[0].properties.clone();
-    /// assert_eq!(
-    ///     result.display_name,
-    ///     "University College London, Euston Road, Holborn, Somers Town, London Borough of Camden, London, Greater London, England, NW1 2FB, United Kingdom",
-    /// );
+    /// assert!(result.display_name.contains("London Borough of Camden, London, Greater London"));
     /// ```
     pub fn forward_full<T>(
         &self,
