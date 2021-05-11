@@ -1,5 +1,14 @@
 # Changes
 
+## Unreleased
+
+- Switch GeoAdmin API to WGS84
+  - <https://github.com/georust/geocoding/pull/43>
+
+## 0.3.1
+
+- Allow usage of `rustls-tls` feature
+
 ## 0.3.0
 
 - Update reqwest and hyper
@@ -10,7 +19,6 @@
   - <https://github.com/georust/geocoding/pull/38>
 - Derive `Clone` for Opencage results
   - <https://github.com/georust/geocoding/pull/38/commits/61019fe0da2bb06580fcf7188eb2381a67d564d2>
-- Allow usage of `rustls-tls` feature
 
 ## 0.2.0
 
