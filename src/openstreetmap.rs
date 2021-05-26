@@ -331,6 +331,7 @@ pub struct AddressDetails {
     pub public_building: Option<String>,
     pub state: Option<String>,
     pub suburb: Option<String>,
+    pub road: Option<String>,
 }
 
 /// A geocoding result geometry
