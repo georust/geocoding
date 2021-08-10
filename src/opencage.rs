@@ -24,8 +24,6 @@
 //! // "Carrer de Calatrava, 68, 08017 Barcelone, Espagne"
 //! println!("{:?}", res.unwrap());
 //! ```
-use crate::chrono::naive::serde::ts_seconds::deserialize as from_ts;
-use crate::chrono::NaiveDateTime;
 use crate::DeserializeOwned;
 use crate::GeocodingError;
 use crate::InputBounds;
@@ -34,9 +32,12 @@ use crate::UA_STRING;
 use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
 use crate::{Deserialize, Serialize};
 use crate::{Forward, Reverse};
+use chrono::naive::serde::ts_seconds::deserialize as from_ts;
+use chrono::NaiveDateTime;
 use num_traits::Float;
 use serde::Deserializer;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 
 macro_rules! add_optional_param {
@@ -146,7 +147,7 @@ impl<'a> Opencage<'a> {
     ///```
     pub fn reverse_full<T>(&self, point: &Point<T>) -> Result<OpencageResponse<T>, GeocodingError>
     where
-        T: Float + DeserializeOwned,
+        T: Float + DeserializeOwned + Debug,
     {
         let q = format!(
             "{}, {}",
@@ -156,9 +157,9 @@ impl<'a> Opencage<'a> {
         );
         let mut query = vec![
             ("q", q.as_str()),
-            (&"key", &self.api_key),
-            (&"no_annotations", "0"),
-            (&"no_record", "1"),
+            ("key", &self.api_key),
+            ("no_annotations", "0"),
+            ("no_record", "1"),
         ];
         query.extend(self.parameters.as_query());
 
@@ -248,7 +249,7 @@ impl<'a> Opencage<'a> {
         bounds: U,
     ) -> Result<OpencageResponse<T>, GeocodingError>
     where
-        T: Float + DeserializeOwned,
+        T: Float + DeserializeOwned + Debug,
         U: Into<Option<InputBounds<T>>>,
     {
         let ann = String::from("0");
@@ -291,7 +292,7 @@ impl<'a> Opencage<'a> {
 
 impl<'a, T> Reverse<T> for Opencage<'a>
 where
-    T: Float + DeserializeOwned,
+    T: Float + DeserializeOwned + Debug,
 {
     /// A reverse lookup of a point. More detail on the format of the
     /// returned `String` can be found [here](https://blog.opencagedata.com/post/99059889253/good-looking-addresses-solving-the-berlin-berlin)
@@ -336,7 +337,7 @@ where
 
 impl<'a, T> Forward<T> for Opencage<'a>
 where
-    T: Float + DeserializeOwned,
+    T: Float + DeserializeOwned + Debug,
 {
     /// A forward-geocoding lookup of an address. Please see [the documentation](https://opencagedata.com/api#ambiguous-results) for details
     /// of best practices in order to obtain good-quality results.
@@ -511,7 +512,7 @@ where
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OpencageResponse<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     pub documentation: String,
     pub licenses: Vec<HashMap<String, String>>,
@@ -528,7 +529,7 @@ where
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Results<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     pub annotations: Option<Annotations<T>>,
     pub bounds: Option<Bounds<T>>,
@@ -542,7 +543,7 @@ where
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Annotations<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     pub dms: Option<HashMap<String, String>>,
     pub mgrs: Option<String>,
@@ -615,7 +616,7 @@ pub struct Timestamp {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bounds<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     pub northeast: HashMap<String, T>,
     pub southwest: HashMap<String, T>,
@@ -652,7 +653,7 @@ mod test {
     fn forward_test() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
         let address = "Schwabing, München";
-        let res = oc.forward(&address);
+        let res = oc.forward(address);
         assert_eq!(
             res.unwrap(),
             vec![Point(Coordinate {
@@ -678,7 +679,7 @@ mod test {
             minimum_lonlat: Point::new(-0.13806939125061035, 51.51989264641164),
             maximum_lonlat: Point::new(-0.13427138328552246, 51.52319711775629),
         };
-        let res = oc.forward_full(&address, bbox).unwrap();
+        let res = oc.forward_full(address, bbox).unwrap();
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
@@ -693,7 +694,7 @@ mod test {
             Point::new(-0.13806939125061035, 51.51989264641164),
             Point::new(-0.13427138328552246, 51.52319711775629),
         );
-        let res = oc.forward_full(&address, bbox).unwrap();
+        let res = oc.forward_full(address, bbox).unwrap();
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
@@ -708,7 +709,7 @@ mod test {
             Point::from((-0.13806939125061035, 51.51989264641164)),
             Point::from((-0.13427138328552246, 51.52319711775629)),
         );
-        let res = oc.forward_full(&address, bbox).unwrap();
+        let res = oc.forward_full(address, bbox).unwrap();
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
@@ -723,7 +724,7 @@ mod test {
             (-0.13806939125061035, 51.51989264641164),
             (-0.13427138328552246, 51.52319711775629),
         );
-        let res = oc.forward_full(&address, bbox).unwrap();
+        let res = oc.forward_full(address, bbox).unwrap();
         let first_result = &res.results[0];
         assert_eq!(
             first_result.formatted,
@@ -734,7 +735,7 @@ mod test {
     fn forward_full_test_nobox() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
         let address = "Moabit, Berlin, Germany";
-        let res = oc.forward_full(&address, NOBOX).unwrap();
+        let res = oc.forward_full(address, NOBOX).unwrap();
         let first_result = &res.results[0];
         assert_eq!(first_result.formatted, "Moabit, Berlin, Germany");
     }
