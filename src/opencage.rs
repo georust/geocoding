@@ -34,7 +34,7 @@ use crate::{Deserialize, Serialize};
 use crate::{Forward, Reverse};
 use chrono::naive::serde::ts_seconds::deserialize as from_ts;
 use chrono::NaiveDateTime;
-use num_traits::Float;
+use geo_types::CoordFloat;
 use serde::Deserializer;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -147,7 +147,7 @@ impl<'a> Opencage<'a> {
     ///```
     pub fn reverse_full<T>(&self, point: &Point<T>) -> Result<OpencageResponse<T>, GeocodingError>
     where
-        T: Float + DeserializeOwned + Debug,
+        T: CoordFloat + DeserializeOwned,
     {
         let q = format!(
             "{}, {}",
@@ -249,7 +249,7 @@ impl<'a> Opencage<'a> {
         bounds: U,
     ) -> Result<OpencageResponse<T>, GeocodingError>
     where
-        T: Float + DeserializeOwned + Debug,
+        T: CoordFloat + DeserializeOwned,
         U: Into<Option<InputBounds<T>>>,
     {
         let ann = String::from("0");
@@ -292,7 +292,7 @@ impl<'a> Opencage<'a> {
 
 impl<'a, T> Reverse<T> for Opencage<'a>
 where
-    T: Float + DeserializeOwned + Debug,
+    T: CoordFloat + DeserializeOwned,
 {
     /// A reverse lookup of a point. More detail on the format of the
     /// returned `String` can be found [here](https://blog.opencagedata.com/post/99059889253/good-looking-addresses-solving-the-berlin-berlin)
@@ -337,7 +337,7 @@ where
 
 impl<'a, T> Forward<T> for Opencage<'a>
 where
-    T: Float + DeserializeOwned + Debug,
+    T: CoordFloat + DeserializeOwned,
 {
     /// A forward-geocoding lookup of an address. Please see [the documentation](https://opencagedata.com/api#ambiguous-results) for details
     /// of best practices in order to obtain good-quality results.
@@ -512,7 +512,7 @@ where
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OpencageResponse<T>
 where
-    T: Float + Debug,
+    T: CoordFloat,
 {
     pub documentation: String,
     pub licenses: Vec<HashMap<String, String>>,
@@ -529,7 +529,7 @@ where
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Results<T>
 where
-    T: Float + Debug,
+    T: CoordFloat,
 {
     pub annotations: Option<Annotations<T>>,
     pub bounds: Option<Bounds<T>>,
@@ -543,7 +543,7 @@ where
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Annotations<T>
 where
-    T: Float + Debug,
+    T: CoordFloat,
 {
     pub dms: Option<HashMap<String, String>>,
     pub mgrs: Option<String>,
@@ -616,7 +616,7 @@ pub struct Timestamp {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bounds<T>
 where
-    T: Float + Debug,
+    T: CoordFloat,
 {
     pub northeast: HashMap<String, T>,
     pub southwest: HashMap<String, T>,

@@ -24,7 +24,8 @@ use crate::Point;
 use crate::UA_STRING;
 use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
 use crate::{Forward, Reverse};
-use num_traits::{Float, Pow};
+use geo_types::CoordFloat;
+use num_traits::Pow;
 
 /// An instance of the GeoAdmin geocoding service
 pub struct GeoAdmin {
@@ -36,7 +37,7 @@ pub struct GeoAdmin {
 /// An instance of a parameter builder for GeoAdmin geocoding
 pub struct GeoAdminParams<'a, T>
 where
-    T: Float + Debug,
+    T: CoordFloat,
 {
     searchtext: &'a str,
     origins: &'a str,
@@ -46,7 +47,7 @@ where
 
 impl<'a, T> GeoAdminParams<'a, T>
 where
-    T: Float + Debug,
+    T: CoordFloat,
 {
     /// Create a new GeoAdmin parameter builder
     /// # Example:
@@ -161,7 +162,7 @@ impl GeoAdmin {
         params: &GeoAdminParams<T>,
     ) -> Result<GeoAdminForwardResponse<T>, GeocodingError>
     where
-        T: Float + Debug,
+        T: CoordFloat,
         for<'de> T: Deserialize<'de>,
     {
         // For lifetime issues
@@ -221,7 +222,7 @@ impl Default for GeoAdmin {
 
 impl<T> Forward<T> for GeoAdmin
 where
-    T: Float + Debug,
+    T: CoordFloat,
     for<'de> T: Deserialize<'de>,
 {
     /// A forward-geocoding lookup of an address. Please see [the documentation](https://api3.geo.admin.ch/services/sdiservices.html#search) for details.
@@ -260,7 +261,7 @@ where
 
 impl<T> Reverse<T> for GeoAdmin
 where
-    T: Float + Debug,
+    T: CoordFloat,
     for<'de> T: Deserialize<'de>,
 {
     /// A reverse lookup of a point. More detail on the format of the
@@ -311,7 +312,7 @@ where
 // See [the documentation](https://www.swisstopo.admin.ch/content/swisstopo-internet/en/online/calculation-services/_jcr_content/contentPar/tabs/items/documents_publicatio/tabPar/downloadlist/downloadItems/19_1467104393233.download/ch1903wgs84_e.pdf) for more details
 fn wgs84_to_lv03<T>(p: &Point<T>) -> Point<T>
 where
-    T: Float + Debug,
+    T: CoordFloat,
 {
     let lambda = (p.x().to_f64().unwrap() * 3600.0 - 26782.5) / 10000.0;
     let phi = (p.y().to_f64().unwrap() * 3600.0 - 169028.66) / 10000.0;
@@ -358,7 +359,7 @@ where
 #[derive(Debug, Deserialize)]
 pub struct GeoAdminForwardResponse<T>
 where
-    T: Float + Debug,
+    T: CoordFloat,
 {
     pub features: Vec<GeoAdminForwardLocation<T>>,
 }
@@ -367,7 +368,7 @@ where
 #[derive(Debug, Deserialize)]
 pub struct GeoAdminForwardLocation<T>
 where
-    T: Float + Debug,
+    T: CoordFloat,
 {
     id: Option<usize>,
     pub properties: ForwardLocationProperties<T>,
