@@ -4,6 +4,8 @@
 
 - Switch GeoAdmin API to WGS84
   - <https://github.com/georust/geocoding/pull/43>
+- Migrate to Github Actions
+- Update tests and dependencies
 
 ## 0.3.1
 
