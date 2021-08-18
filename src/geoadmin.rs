@@ -15,8 +15,6 @@
 //! let res = geoadmin.forward(&address);
 //! assert_eq!(res.unwrap(), vec![Point::new(7.451352119445801, 46.92793655395508)]);
 //! ```
-use std::fmt::Debug;
-
 use crate::Deserialize;
 use crate::GeocodingError;
 use crate::InputBounds;
