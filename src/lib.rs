@@ -27,9 +27,8 @@
 
 static UA_STRING: &str = "Rust-Geocoding";
 
-use chrono;
+use geo_types::CoordFloat;
 pub use geo_types::{Coordinate, Point};
-use num_traits::Float;
 use reqwest::blocking::Client;
 use reqwest::header::ToStrError;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
@@ -85,7 +84,7 @@ pub enum GeocodingError {
 /// ```
 pub trait Reverse<T>
 where
-    T: Float,
+    T: CoordFloat,
 {
     // NOTE TO IMPLEMENTERS: Point coordinates are lon, lat (x, y)
     // You may have to provide these coordinates in reverse order,
@@ -113,7 +112,7 @@ where
 /// ```
 pub trait Forward<T>
 where
-    T: Float,
+    T: CoordFloat,
 {
     // NOTE TO IMPLEMENTERS: while returned provider point data may not be in
     // lon, lat (x, y) order, Geocoding requires this order in its output Point
@@ -128,7 +127,7 @@ where
 #[derive(Copy, Clone, Debug)]
 pub struct InputBounds<T>
 where
-    T: Float,
+    T: CoordFloat,
 {
     pub minimum_lonlat: Point<T>,
     pub maximum_lonlat: Point<T>,
@@ -136,7 +135,7 @@ where
 
 impl<T> InputBounds<T>
 where
-    T: Float,
+    T: CoordFloat,
 {
     /// Create a new `InputBounds` struct by passing 2 `Point`s defining:
     /// - minimum (bottom-left) longitude and latitude coordinates
@@ -155,7 +154,7 @@ where
 /// Convert borrowed input bounds into the correct String representation
 impl<T> From<InputBounds<T>> for String
 where
-    T: Float,
+    T: CoordFloat,
 {
     fn from(ip: InputBounds<T>) -> String {
         // Return in lon, lat order
