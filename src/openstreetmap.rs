@@ -133,13 +133,13 @@ impl Openstreetmap {
     ///     (-0.13806939125061035, 51.51989264641164),
     ///     (-0.13427138328552246, 51.52319711775629),
     /// );
-    /// let params = OpenstreetmapParams::new(&"University College London")
+    /// let params = OpenstreetmapParams::new(&"UCL CASA")
     ///     .with_addressdetails(true)
     ///     .with_viewbox(&viewbox)
     ///     .build();
     /// let res: OpenstreetmapResponse<f64> = osm.forward_full(&params).unwrap();
     /// let result = res.features[0].properties.clone();
-    /// assert!(result.display_name.contains("London Borough of Camden, London, Greater London"));
+    /// assert!(result.display_name.contains("Gordon Square"));
     /// ```
     pub fn forward_full<T>(
         &self,
@@ -371,9 +371,7 @@ mod test {
             .build();
         let res: OpenstreetmapResponse<f64> = osm.forward_full(&params).unwrap();
         let result = res.features[0].properties.clone();
-        assert!(result
-            .display_name
-            .contains("London Borough of Camden, London, Greater London"));
+        assert!(result.display_name.contains("Gordon Square"));
         assert_eq!(result.address.unwrap().city.unwrap(), "London");
     }
 

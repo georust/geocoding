@@ -210,7 +210,7 @@ impl<'a> Opencage<'a> {
     /// let res = oc.forward_full(&address, bbox).unwrap();
     /// let first_result = &res.results[0];
     /// // the first result is correct
-    /// assert_eq!(first_result.formatted, "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom");
+    /// assert!(first_result.formatted.contains("UCL, 188 Tottenham Court Road"));
     ///```
     ///
     /// ```
@@ -238,10 +238,10 @@ impl<'a> Opencage<'a> {
     /// );
     /// let res = oc.forward_full(&address, bbox).unwrap();
     /// let first_result = &res.results[0];
-    /// assert_eq!(
-    ///     first_result.formatted,
-    ///     "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
-    /// );
+    /// assert!(
+    ///     first_result.formatted.contains(
+    ///         "UCL, 188 Tottenham Court Road"
+    /// ));
     /// ```
     pub fn forward_full<T, U>(
         &self,
@@ -681,10 +681,7 @@ mod test {
         };
         let res = oc.forward_full(address, bbox).unwrap();
         let first_result = &res.results[0];
-        assert_eq!(
-            first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
-        );
+        assert!(first_result.formatted.contains("UCL"));
     }
     #[test]
     fn forward_full_test_floats() {
@@ -696,10 +693,9 @@ mod test {
         );
         let res = oc.forward_full(address, bbox).unwrap();
         let first_result = &res.results[0];
-        assert_eq!(
-            first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
-        );
+        assert!(first_result
+            .formatted
+            .contains("UCL, 188 Tottenham Court Road"));
     }
     #[test]
     fn forward_full_test_pointfrom() {
@@ -711,10 +707,9 @@ mod test {
         );
         let res = oc.forward_full(address, bbox).unwrap();
         let first_result = &res.results[0];
-        assert_eq!(
-            first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
-        );
+        assert!(first_result
+            .formatted
+            .contains("UCL, 188 Tottenham Court Road"));
     }
     #[test]
     fn forward_full_test_pointinto() {
@@ -726,10 +721,9 @@ mod test {
         );
         let res = oc.forward_full(address, bbox).unwrap();
         let first_result = &res.results[0];
-        assert_eq!(
-            first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
-        );
+        assert!(first_result
+            .formatted
+            .contains("Tottenham Court Road, London"));
     }
     #[test]
     fn forward_full_test_nobox() {
