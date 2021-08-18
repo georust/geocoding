@@ -16,8 +16,6 @@
 //! let res = osm.forward(&address);
 //! assert_eq!(res.unwrap(), vec![Point::new(11.5884858, 48.1700887)]);
 //! ```
-use std::fmt::Debug;
-
 use crate::GeocodingError;
 use crate::InputBounds;
 use crate::Point;

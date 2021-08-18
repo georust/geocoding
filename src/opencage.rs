@@ -37,7 +37,6 @@ use chrono::NaiveDateTime;
 use geo_types::CoordFloat;
 use serde::Deserializer;
 use std::collections::HashMap;
-use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 
 macro_rules! add_optional_param {

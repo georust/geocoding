@@ -34,7 +34,6 @@ use reqwest::header::ToStrError;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 use std::num::ParseIntError;
 use thiserror::Error;
 
