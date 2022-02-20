@@ -550,7 +550,7 @@ where
     pub mercator: Option<HashMap<String, T>>,
     pub osm: Option<HashMap<String, String>>,
     pub callingcode: i16,
-    pub currency: Currency,
+    pub currency: Option<Currency>,
     pub flag: String,
     pub geohash: String,
     pub qibla: T,
