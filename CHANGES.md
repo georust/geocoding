@@ -1,11 +1,14 @@
 # Changes
 
-## Unreleased
+## 0.4.0
 
 - Switch GeoAdmin API to WGS84
   - <https://github.com/georust/geocoding/pull/43>
 - Migrate to Github Actions
 - Update tests and dependencies
+- Update geo-types
+- Derive Debug where necessary
+- Fix OpenCage schema <https://github.com/georust/geocoding/pull/55>
 
 ## 0.3.1
 
