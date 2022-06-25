@@ -24,6 +24,7 @@ use crate::{Client, HeaderMap, HeaderValue, USER_AGENT};
 use crate::{Deserialize, Serialize};
 use crate::{Forward, Reverse};
 use num_traits::Float;
+use std::fmt::Debug;
 
 /// An instance of the Openstreetmap geocoding service
 pub struct Openstreetmap {
@@ -34,7 +35,7 @@ pub struct Openstreetmap {
 /// An instance of a parameter builder for Openstreetmap geocoding
 pub struct OpenstreetmapParams<'a, T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     query: &'a str,
     addressdetails: bool,
@@ -43,7 +44,7 @@ where
 
 impl<'a, T> OpenstreetmapParams<'a, T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     /// Create a new OpenStreetMap parameter builder
     /// # Example:
@@ -144,7 +145,7 @@ impl Openstreetmap {
         params: &OpenstreetmapParams<T>,
     ) -> Result<OpenstreetmapResponse<T>, GeocodingError>
     where
-        T: Float,
+        T: Float + Debug,
         for<'de> T: Deserialize<'de>,
     {
         let format = String::from("geojson");
@@ -182,7 +183,7 @@ impl Default for Openstreetmap {
 
 impl<T> Forward<T> for Openstreetmap
 where
-    T: Float,
+    T: Float + Debug,
     for<'de> T: Deserialize<'de>,
 {
     /// A forward-geocoding lookup of an address. Please see [the documentation](https://nominatim.org/release-docs/develop/api/Search/) for details.
@@ -206,7 +207,7 @@ where
 
 impl<T> Reverse<T> for Openstreetmap
 where
-    T: Float,
+    T: Float + Debug,
     for<'de> T: Deserialize<'de>,
 {
     /// A reverse lookup of a point. More detail on the format of the
@@ -283,7 +284,7 @@ where
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OpenstreetmapResponse<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     pub r#type: String,
     pub licence: String,
@@ -294,7 +295,7 @@ where
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OpenstreetmapResult<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     pub r#type: String,
     pub properties: ResultProperties,
@@ -337,7 +338,7 @@ pub struct AddressDetails {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResultGeometry<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     pub r#type: String,
     pub coordinates: (T, T),
