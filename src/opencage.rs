@@ -532,7 +532,7 @@ where
 {
     pub annotations: Option<Annotations<T>>,
     pub bounds: Option<Bounds<T>>,
-    pub components: HashMap<String, String>,
+    pub components: HashMap<String, serde_json::Value>,
     pub confidence: i8,
     pub formatted: String,
     pub geometry: HashMap<String, T>,
