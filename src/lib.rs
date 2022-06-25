@@ -162,10 +162,10 @@ where
         // Return in lon, lat order
         format!(
             "{},{},{},{}",
-            ip.minimum_lonlat.x().to_f64().unwrap().to_string(),
-            ip.minimum_lonlat.y().to_f64().unwrap().to_string(),
-            ip.maximum_lonlat.x().to_f64().unwrap().to_string(),
-            ip.maximum_lonlat.y().to_f64().unwrap().to_string()
+            ip.minimum_lonlat.x().to_f64().unwrap(),
+            ip.minimum_lonlat.y().to_f64().unwrap(),
+            ip.maximum_lonlat.x().to_f64().unwrap(),
+            ip.maximum_lonlat.y().to_f64().unwrap()
         )
     }
 }

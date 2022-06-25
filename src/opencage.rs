@@ -157,9 +157,9 @@ impl<'a> Opencage<'a> {
         );
         let mut query = vec![
             ("q", q.as_str()),
-            (&"key", &self.api_key),
-            (&"no_annotations", "0"),
-            (&"no_record", "1"),
+            ("key", &self.api_key),
+            ("no_annotations", "0"),
+            ("no_record", "1"),
         ];
         query.extend(self.parameters.as_query());
 
