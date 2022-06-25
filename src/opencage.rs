@@ -37,6 +37,7 @@ use crate::{Forward, Reverse};
 use num_traits::Float;
 use serde::Deserializer;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 
 macro_rules! add_optional_param {
@@ -146,7 +147,7 @@ impl<'a> Opencage<'a> {
     ///```
     pub fn reverse_full<T>(&self, point: &Point<T>) -> Result<OpencageResponse<T>, GeocodingError>
     where
-        T: Float + DeserializeOwned,
+        T: Float + DeserializeOwned + Debug,
     {
         let q = format!(
             "{}, {}",
@@ -248,7 +249,7 @@ impl<'a> Opencage<'a> {
         bounds: U,
     ) -> Result<OpencageResponse<T>, GeocodingError>
     where
-        T: Float + DeserializeOwned,
+        T: Float + DeserializeOwned + Debug,
         U: Into<Option<InputBounds<T>>>,
     {
         let ann = String::from("0");
@@ -291,7 +292,7 @@ impl<'a> Opencage<'a> {
 
 impl<'a, T> Reverse<T> for Opencage<'a>
 where
-    T: Float + DeserializeOwned,
+    T: Float + DeserializeOwned + Debug,
 {
     /// A reverse lookup of a point. More detail on the format of the
     /// returned `String` can be found [here](https://blog.opencagedata.com/post/99059889253/good-looking-addresses-solving-the-berlin-berlin)
@@ -336,7 +337,7 @@ where
 
 impl<'a, T> Forward<T> for Opencage<'a>
 where
-    T: Float + DeserializeOwned,
+    T: Float + DeserializeOwned + Debug,
 {
     /// A forward-geocoding lookup of an address. Please see [the documentation](https://opencagedata.com/api#ambiguous-results) for details
     /// of best practices in order to obtain good-quality results.
