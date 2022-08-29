@@ -3,6 +3,7 @@
 ## unreleased
 
 - Remove unmaintained `chrono` dependency
+- Remove `default-tls` feature from `reqwest` dependency
 
 ### Breaking Changes
 
