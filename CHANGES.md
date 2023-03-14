@@ -1,7 +1,7 @@
 # Changes
 
 ## 0.4.0
-
+- Update CI to use same Rust versions as geo
 - Switch GeoAdmin API to WGS84
   - <https://github.com/georust/geocoding/pull/43>
 - Migrate to Github Actions
