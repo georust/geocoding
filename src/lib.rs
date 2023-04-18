@@ -27,7 +27,7 @@
 
 static UA_STRING: &str = "Rust-Geocoding";
 
-pub use geo_types::{Coordinate, Point};
+pub use geo_types::{Coord, Point};
 use num_traits::Float;
 use reqwest::blocking::Client;
 use reqwest::header::ToStrError;
@@ -108,7 +108,7 @@ where
 /// let res: Vec<Point<f64>> = oc.forward(address).unwrap();
 /// assert_eq!(
 ///     res,
-///     vec![Point(Coordinate { x: 11.5884858, y: 48.1700887 })]
+///     vec![Point(Coord { x: 11.5884858, y: 48.1700887 })]
 /// );
 /// ```
 pub trait Forward<T>

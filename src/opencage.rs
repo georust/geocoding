@@ -635,7 +635,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::Coordinate;
+    use crate::Coord;
 
     #[test]
     fn reverse_test() {
@@ -666,7 +666,7 @@ mod test {
         let res = oc.forward(&address);
         assert_eq!(
             res.unwrap(),
-            vec![Point(Coordinate {
+            vec![Point(Coord {
                 x: 11.5884858,
                 y: 48.1700887
             })]
