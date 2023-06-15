@@ -625,6 +625,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    #[allow(deprecated)]
     use crate::Coordinate;
 
     #[test]
@@ -650,6 +651,7 @@ mod test {
         );
     }
     #[test]
+    #[allow(deprecated)]
     fn forward_test() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
         let address = "Schwabing, München";
