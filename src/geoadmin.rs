@@ -368,7 +368,6 @@ pub struct GeoAdminForwardLocation<T>
 where
     T: Float + Debug,
 {
-    id: Option<usize>,
     pub properties: ForwardLocationProperties<T>,
 }
 
@@ -417,7 +416,6 @@ pub struct GeoAdminReverseResponse {
 /// A reverse geocoding result
 #[derive(Debug, Deserialize)]
 pub struct GeoAdminReverseLocation {
-    id: String,
     #[serde(rename = "featureId")]
     pub feature_id: String,
     #[serde(rename = "layerBodId")]
