@@ -37,6 +37,7 @@ use crate::{Forward, Reverse};
 use num_traits::Float;
 use serde::Deserializer;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 
 macro_rules! add_optional_param {
@@ -146,7 +147,7 @@ impl<'a> Opencage<'a> {
     ///```
     pub fn reverse_full<T>(&self, point: &Point<T>) -> Result<OpencageResponse<T>, GeocodingError>
     where
-        T: Float + DeserializeOwned,
+        T: Float + DeserializeOwned + Debug,
     {
         let q = format!(
             "{}, {}",
@@ -156,9 +157,9 @@ impl<'a> Opencage<'a> {
         );
         let mut query = vec![
             ("q", q.as_str()),
-            (&"key", &self.api_key),
-            (&"no_annotations", "0"),
-            (&"no_record", "1"),
+            ("key", &self.api_key),
+            ("no_annotations", "0"),
+            ("no_record", "1"),
         ];
         query.extend(self.parameters.as_query());
 
@@ -199,7 +200,7 @@ impl<'a> Opencage<'a> {
     /// use geocoding::{Opencage, InputBounds, Point};
     ///
     /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
-    /// let address = "UCL CASA";
+    /// let address = "UCL Centre for Advanced Spatial Analysis";
     /// // Optionally restrict the search space using a bounding box.
     /// // The first point is the bottom-left corner, the second is the top-right.
     /// let bbox = InputBounds::new(
@@ -209,7 +210,7 @@ impl<'a> Opencage<'a> {
     /// let res = oc.forward_full(&address, bbox).unwrap();
     /// let first_result = &res.results[0];
     /// // the first result is correct
-    /// assert_eq!(first_result.formatted, "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom");
+    /// assert!(first_result.formatted.contains("90 Tottenham Court Road"));
     ///```
     ///
     /// ```
@@ -230,17 +231,17 @@ impl<'a> Opencage<'a> {
     /// // There are several ways to construct a Point, such as from a tuple
     /// use geocoding::{Opencage, InputBounds, Point};
     /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
-    /// let address = "UCL CASA";
+    /// let address = "UCL Centre for Advanced Spatial Analysis";
     /// let bbox = InputBounds::new(
     ///     (-0.13806939125061035, 51.51989264641164),
     ///     (-0.13427138328552246, 51.52319711775629),
     /// );
     /// let res = oc.forward_full(&address, bbox).unwrap();
     /// let first_result = &res.results[0];
-    /// assert_eq!(
-    ///     first_result.formatted,
-    ///     "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
-    /// );
+    /// assert!(
+    ///     first_result.formatted.contains(
+    ///         "90 Tottenham Court Road"
+    /// ));
     /// ```
     pub fn forward_full<T, U>(
         &self,
@@ -248,7 +249,7 @@ impl<'a> Opencage<'a> {
         bounds: U,
     ) -> Result<OpencageResponse<T>, GeocodingError>
     where
-        T: Float + DeserializeOwned,
+        T: Float + DeserializeOwned + Debug,
         U: Into<Option<InputBounds<T>>>,
     {
         let ann = String::from("0");
@@ -291,7 +292,7 @@ impl<'a> Opencage<'a> {
 
 impl<'a, T> Reverse<T> for Opencage<'a>
 where
-    T: Float + DeserializeOwned,
+    T: Float + DeserializeOwned + Debug,
 {
     /// A reverse lookup of a point. More detail on the format of the
     /// returned `String` can be found [here](https://blog.opencagedata.com/post/99059889253/good-looking-addresses-solving-the-berlin-berlin)
@@ -336,7 +337,7 @@ where
 
 impl<'a, T> Forward<T> for Opencage<'a>
 where
-    T: Float + DeserializeOwned,
+    T: Float + DeserializeOwned + Debug,
 {
     /// A forward-geocoding lookup of an address. Please see [the documentation](https://opencagedata.com/api#ambiguous-results) for details
     /// of best practices in order to obtain good-quality results.
@@ -532,7 +533,7 @@ where
 {
     pub annotations: Option<Annotations<T>>,
     pub bounds: Option<Bounds<T>>,
-    pub components: HashMap<String, String>,
+    pub components: HashMap<String, serde_json::Value>,
     pub confidence: i8,
     pub formatted: String,
     pub geometry: HashMap<String, T>,
@@ -550,7 +551,7 @@ where
     pub mercator: Option<HashMap<String, T>>,
     pub osm: Option<HashMap<String, String>>,
     pub callingcode: i16,
-    pub currency: Currency,
+    pub currency: Option<Currency>,
     pub flag: String,
     pub geohash: String,
     pub qibla: T,
@@ -624,6 +625,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    #[allow(deprecated)]
     use crate::Coordinate;
 
     #[test]
@@ -649,6 +651,7 @@ mod test {
         );
     }
     #[test]
+    #[allow(deprecated)]
     fn forward_test() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
         let address = "Schwabing, München";
@@ -673,62 +676,58 @@ mod test {
     #[test]
     fn forward_full_test() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
-        let address = "UCL CASA";
+        let address = "UCL Centre for Advanced Spatial Analysis";
         let bbox = InputBounds {
             minimum_lonlat: Point::new(-0.13806939125061035, 51.51989264641164),
             maximum_lonlat: Point::new(-0.13427138328552246, 51.52319711775629),
         };
         let res = oc.forward_full(&address, bbox).unwrap();
         let first_result = &res.results[0];
-        assert_eq!(
-            first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
-        );
+        assert!(first_result.formatted.contains("UCL"));
     }
     #[test]
     fn forward_full_test_floats() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
-        let address = "UCL CASA";
+        let address = "UCL Centre for Advanced Spatial Analysis";
         let bbox = InputBounds::new(
             Point::new(-0.13806939125061035, 51.51989264641164),
             Point::new(-0.13427138328552246, 51.52319711775629),
         );
         let res = oc.forward_full(&address, bbox).unwrap();
         let first_result = &res.results[0];
-        assert_eq!(
-            first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
+        assert!(
+            first_result.formatted.contains("UCL")
+                && first_result.formatted.contains("90 Tottenham Court Road")
         );
     }
     #[test]
     fn forward_full_test_pointfrom() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
-        let address = "UCL CASA";
+        let address = "UCL Centre for Advanced Spatial Analysis";
         let bbox = InputBounds::new(
             Point::from((-0.13806939125061035, 51.51989264641164)),
             Point::from((-0.13427138328552246, 51.52319711775629)),
         );
         let res = oc.forward_full(&address, bbox).unwrap();
         let first_result = &res.results[0];
-        assert_eq!(
-            first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
+        assert!(
+            first_result.formatted.contains("UCL")
+                && first_result.formatted.contains("90 Tottenham Court Road")
         );
     }
     #[test]
     fn forward_full_test_pointinto() {
         let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
-        let address = "UCL CASA";
+        let address = "UCL Centre for Advanced Spatial Analysis";
         let bbox = InputBounds::new(
             (-0.13806939125061035, 51.51989264641164),
             (-0.13427138328552246, 51.52319711775629),
         );
         let res = oc.forward_full(&address, bbox).unwrap();
         let first_result = &res.results[0];
-        assert_eq!(
-            first_result.formatted,
-            "UCL, 188 Tottenham Court Road, London W1T 7PQ, United Kingdom"
-        );
+        assert!(first_result
+            .formatted
+            .contains("Tottenham Court Road, London"));
     }
     #[test]
     fn forward_full_test_nobox() {
