@@ -28,6 +28,7 @@
 static UA_STRING: &str = "Rust-Geocoding";
 
 use chrono;
+#[allow(deprecated)]
 pub use geo_types::{Coordinate, Point};
 use num_traits::Float;
 use reqwest::blocking::Client;

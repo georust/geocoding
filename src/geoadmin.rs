@@ -368,7 +368,6 @@ pub struct GeoAdminForwardLocation<T>
 where
     T: Float + Debug,
 {
-    id: Option<usize>,
     pub properties: ForwardLocationProperties<T>,
 }
 
@@ -417,7 +416,6 @@ pub struct GeoAdminReverseResponse {
 /// A reverse geocoding result
 #[derive(Debug, Deserialize)]
 pub struct GeoAdminReverseLocation {
-    id: String,
     #[serde(rename = "featureId")]
     pub feature_id: String,
     #[serde(rename = "layerBodId")]
@@ -526,6 +524,7 @@ mod test {
     }
 
     #[test]
+    #[ignore = "https://github.com/georust/geocoding/pull/45#issuecomment-1592395700"]
     fn reverse_test() {
         let geoadmin = GeoAdmin::new();
         let p = Point::new(7.451352119445801, 46.92793655395508);
