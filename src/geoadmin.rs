@@ -526,6 +526,7 @@ mod test {
     }
 
     #[test]
+    #[ignore = "https://github.com/georust/geocoding/pull/45#issuecomment-1592395700"]
     fn reverse_test() {
         let geoadmin = GeoAdmin::new();
         let p = Point::new(7.451352119445801, 46.92793655395508);
