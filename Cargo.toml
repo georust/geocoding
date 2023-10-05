@@ -8,6 +8,7 @@ repository = "https://github.com/georust/geocoding"
 keywords = ["gecoding", "geo", "gis", "geospatial"]
 readme = "README.md"
 edition = "2018"
+rust-version = "1.69"
 
 [dependencies]
 thiserror = "1.0"
