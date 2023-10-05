@@ -4,6 +4,7 @@
 
 - Remove `chrono` dependency
 - update geo-types to 0.7.8
+- bump MSRV to 1.69 to keep CI happy
 
 ### Breaking Changes
 
