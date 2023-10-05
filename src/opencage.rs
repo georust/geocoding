@@ -24,8 +24,6 @@
 //! // "Carrer de Calatrava, 68, 08017 Barcelone, Espagne"
 //! println!("{:?}", res.unwrap());
 //! ```
-use crate::chrono::naive::serde::ts_seconds::deserialize as from_ts;
-use crate::chrono::NaiveDateTime;
 use crate::DeserializeOwned;
 use crate::GeocodingError;
 use crate::InputBounds;
@@ -608,8 +606,20 @@ pub struct Status {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Timestamp {
     pub created_http: String,
-    #[serde(deserialize_with = "from_ts")]
-    pub created_unix: NaiveDateTime,
+    pub created_unix: UnixTime,
+}
+
+/// Primitive unix timestamp
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct UnixTime(i64);
+
+impl UnixTime {
+    pub const fn as_seconds(self) -> i64 {
+        self.0
+    }
+    pub const fn from_seconds(seconds: i64) -> Self {
+        Self(seconds)
+    }
 }
 
 /// Bounding-box metadata
@@ -625,8 +635,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    #[allow(deprecated)]
-    use crate::Coordinate;
+    use crate::Coord;
 
     #[test]
     fn reverse_test() {
@@ -658,7 +667,7 @@ mod test {
         let res = oc.forward(&address);
         assert_eq!(
             res.unwrap(),
-            vec![Point(Coordinate {
+            vec![Point(Coord {
                 x: 11.5884858,
                 y: 48.1700887
             })]
