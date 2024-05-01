@@ -7,7 +7,7 @@ Rust utilities to enrich addresses, cities, countries, and landmarks
 with geographic coordinates through third-party geocoding web services.
 Project is in a very early stage.
 
-[API Documentation](https://docs.rs/geocoding)
+[API Documentation](https://docs.rs/geocoding-async)
 
 ## License
 
