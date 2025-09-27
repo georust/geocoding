@@ -30,6 +30,8 @@ use std::fmt::Debug;
 pub struct Openstreetmap {
     client: Client,
     endpoint: String,
+    // Default language for this client (used if per-request language is not provided)
+    accept_language: Option<String>,
 }
 
 /// An instance of a parameter builder for Openstreetmap geocoding
@@ -40,6 +42,8 @@ where
     query: &'a str,
     addressdetails: bool,
     viewbox: Option<&'a InputBounds<T>>,
+    // Per-request language (takes precedence over client's default)
+    accept_language: Option<&'a str>,
 }
 
 impl<'a, T> OpenstreetmapParams<'a, T>
@@ -51,13 +55,13 @@ where
     ///
     /// ```
     /// use geocoding::{Openstreetmap, InputBounds, Point};
-    /// use geocoding::openstreetmap::{OpenstreetmapParams};
+    /// use geocoding::openstreetmap::OpenstreetmapParams;
     ///
     /// let viewbox = InputBounds::new(
     ///     (-0.13806939125061035, 51.51989264641164),
     ///     (-0.13427138328552246, 51.52319711775629),
     /// );
-    /// let params = OpenstreetmapParams::new(&"UCL Centre for Advanced Spatial Analysis")
+    /// let params = OpenstreetmapParams::new("UCL Centre for Advanced Spatial Analysis")
     ///     .with_addressdetails(true)
     ///     .with_viewbox(&viewbox)
     ///     .build();
@@ -67,6 +71,7 @@ where
             query,
             addressdetails: false,
             viewbox: None,
+            accept_language: None,
         }
     }
 
@@ -82,12 +87,19 @@ where
         self
     }
 
+    /// Set the `accept-language` query parameter ("fr", "en-US", etc.)
+    pub fn with_accept_language(&mut self, lang: &'a str) -> &mut Self {
+        self.accept_language = Some(lang);
+        self
+    }
+
     /// Build and return an instance of OpenstreetmapParams
     pub fn build(&self) -> OpenstreetmapParams<'a, T> {
         OpenstreetmapParams {
             query: self.query,
             addressdetails: self.addressdetails,
             viewbox: self.viewbox,
+            accept_language: self.accept_language,
         }
     }
 }
@@ -108,7 +120,18 @@ impl Openstreetmap {
             .default_headers(headers)
             .build()
             .expect("Couldn't build a client!");
-        Openstreetmap { client, endpoint }
+        Openstreetmap {
+            client,
+            endpoint,
+            accept_language: None,
+        }
+    }
+
+    /// Set a default `accept-language` query parameter for this client.
+    /// This language will be applied to all requests unless a per-request language is provided.
+    pub fn with_accept_language(mut self, lang: impl Into<String>) -> Self {
+        self.accept_language = Some(lang.into());
+        self
     }
 
     /// A forward-geocoding lookup of an address, returning a full detailed response
@@ -132,7 +155,7 @@ impl Openstreetmap {
     ///     (-0.13806939125061035, 51.51989264641164),
     ///     (-0.13427138328552246, 51.52319711775629),
     /// );
-    /// let params = OpenstreetmapParams::new(&"UCL Centre for Advanced Spatial Analysis")
+    /// let params = OpenstreetmapParams::new("UCL Centre for Advanced Spatial Analysis")
     ///     .with_addressdetails(true)
     ///     .with_viewbox(&viewbox)
     ///     .build();
@@ -164,6 +187,13 @@ impl Openstreetmap {
             query.push((&"viewbox", &viewbox));
         }
 
+        // Language: per-request parameter has priority, else fall back to client default.
+        if let Some(lang) = params.accept_language {
+            query.push((&"accept-language", lang));
+        } else if let Some(lang) = &self.accept_language {
+            query.push((&"accept-language", lang.as_str()));
+        }
+
         let resp = self
             .client
             .get(format!("{}search", self.endpoint))
@@ -190,12 +220,17 @@ where
     ///
     /// This method passes the `format` parameter to the API.
     fn forward(&self, place: &str) -> Result<Vec<Point<T>>, GeocodingError> {
-        let resp = self
+        let mut req = self
             .client
             .get(format!("{}search", self.endpoint))
-            .query(&[(&"q", place), (&"format", &String::from("geojson"))])
-            .send()?
-            .error_for_status()?;
+            .query(&[(&"q", place), (&"format", &String::from("geojson"))]);
+
+        // Add client's default language if set
+        if let Some(lang) = &self.accept_language {
+            req = req.query(&[(&"accept-language", lang.as_str())]);
+        }
+
+        let resp = req.send()?.error_for_status()?;
         let res: OpenstreetmapResponse<T> = resp.json()?;
         Ok(res
             .features
@@ -215,16 +250,21 @@ where
     ///
     /// This method passes the `format` parameter to the API.
     fn reverse(&self, point: &Point<T>) -> Result<Option<String>, GeocodingError> {
-        let resp = self
+        let mut req = self
             .client
             .get(format!("{}reverse", self.endpoint))
             .query(&[
                 (&"lon", &point.x().to_f64().unwrap().to_string()),
                 (&"lat", &point.y().to_f64().unwrap().to_string()),
                 (&"format", &String::from("geojson")),
-            ])
-            .send()?
-            .error_for_status()?;
+            ]);
+
+        // Add client's default language if set
+        if let Some(lang) = &self.accept_language {
+            req = req.query(&[(&"accept-language", lang.as_str())]);
+        }
+
+        let resp = req.send()?.error_for_status()?;
         let res: OpenstreetmapResponse<T> = resp.json()?;
         let address = &res.features[0];
         Ok(Some(address.properties.display_name.to_string()))
@@ -393,5 +433,99 @@ mod test {
             .unwrap()
             .unwrap()
             .contains("Barcelona, Barcelonès, Barcelona, Catalunya"));
+    }
+
+    // -------- Added language-aware online tests (ignored by default) --------
+
+    /// Run manually with: `cargo test -- --ignored`
+    #[test]
+    #[ignore]
+    fn reverse_uses_client_accept_language() {
+        use std::{thread, time::Duration};
+
+        // Create two clients with different default languages
+        let osm_en = Openstreetmap::new().with_accept_language("en");
+        let osm_fr = Openstreetmap::new().with_accept_language("fr");
+
+        // Coordinates of Vienna / Vienne
+        let p = Point::new(16.3738_f64, 48.2082_f64);
+
+        // Query in English
+        let en = osm_en.reverse(&p).unwrap().unwrap();
+
+        // Respect Nominatim's rate-limit (max 1 request per second)
+        thread::sleep(Duration::from_millis(1200));
+
+        // Query in French
+        let fr = osm_fr.reverse(&p).unwrap().unwrap();
+
+        // Expect different display_name values depending on Accept-Language
+        assert_ne!(en, fr, "display_name should differ with Accept-Language");
+
+        // Soft checks (not strict equality, avoids brittle tests)
+        let en_l = en.to_lowercase();
+        let fr_l = fr.to_lowercase();
+        assert!(
+            en_l.contains("vienna") || en_l.contains("austria"),
+            "EN likely includes 'Vienna' or 'Austria' (got: {})",
+            en
+        );
+
+        assert!(
+            fr_l.contains("vienne") || fr_l.contains("autriche"),
+            "FR likely includes 'Vienne' or 'Autriche' (got: {})",
+            fr
+        );
+    }
+
+    /// Verify that a per-request `accept-language` parameter overrides
+    /// the client's default language setting.
+    /// Run manually with: `cargo test -- --ignored`
+    #[test]
+    #[ignore]
+    fn forward_full_param_overrides_client_language() {
+        use std::{thread, time::Duration};
+
+        // Client with default language EN
+        let osm = Openstreetmap::new().with_accept_language("en");
+
+        // Forward request relying on client default (EN)
+        let params_en = OpenstreetmapParams::<f64>::new("Cologne")
+            .with_addressdetails(true)
+            .build();
+        let en_res: OpenstreetmapResponse<f64> = osm.forward_full(&params_en).unwrap();
+
+        // Respect Nominatim's rate-limit
+        thread::sleep(Duration::from_millis(1200));
+
+        // Forward request overriding language to FR via params
+        let params_fr = OpenstreetmapParams::<f64>::new("Cologne")
+            .with_addressdetails(true)
+            .with_accept_language("fr")
+            .build();
+        let fr_res: OpenstreetmapResponse<f64> = osm.forward_full(&params_fr).unwrap();
+
+        // Extract display_name values
+        let en_name = en_res
+            .features
+            .first()
+            .map(|f| f.properties.display_name.clone())
+            .unwrap_or_default();
+        let fr_name = fr_res
+            .features
+            .first()
+            .map(|f| f.properties.display_name.clone())
+            .unwrap_or_default();
+
+        assert!(
+            !en_name.is_empty() && !fr_name.is_empty(),
+            "Expected non-empty display_name in both responses"
+        );
+
+        // Expect different results when overriding language
+        assert_ne!(
+            en_name, fr_name,
+            "Param 'accept-language=fr' should override client default 'en'"
+        );
     }
 }
