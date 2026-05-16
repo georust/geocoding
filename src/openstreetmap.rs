@@ -349,11 +349,59 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use mockito::{Matcher, ServerGuard};
+    use serde_json::{json, Value};
+
+    fn make_osm(server: &ServerGuard) -> Openstreetmap {
+        Openstreetmap::new_with_endpoint(format!("{}/", server.url()))
+    }
+
+    fn forward_body(display_name: &str, lng: f64, lat: f64, address: Option<Value>) -> String {
+        json!({
+            "type": "FeatureCollection",
+            "licence": "Data © OpenStreetMap contributors, ODbL 1.0.",
+            "features": [{
+                "type": "Feature",
+                "properties": {
+                    "place_id": 1u64,
+                    "osm_type": "way",
+                    "osm_id": 1u64,
+                    "display_name": display_name,
+                    "place_rank": 30u64,
+                    "category": "building",
+                    "type": "yes",
+                    "importance": 0.5,
+                    "address": address,
+                },
+                "bbox": [lng, lat, lng, lat],
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [lng, lat]
+                }
+            }]
+        })
+        .to_string()
+    }
+
+    fn mock_path(server: &mut ServerGuard, path: &str, body: String) -> mockito::Mock {
+        server
+            .mock("GET", Matcher::Regex(format!("^{}.*", path)))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(body)
+            .create()
+    }
 
     #[test]
     fn new_with_endpoint_forward_test() {
-        let osm =
-            Openstreetmap::new_with_endpoint("https://nominatim.openstreetmap.org/".to_string());
+        let mut server = mockito::Server::new();
+        let _m = mock_path(
+            &mut server,
+            "/search",
+            forward_body("Schwabing, München, Germany", 11.5884858, 48.1700887, None),
+        );
+
+        let osm = Openstreetmap::new_with_endpoint(format!("{}/", server.url()));
         let address = "Schwabing, München";
         let res = osm.forward(address);
         assert_eq!(res.unwrap(), vec![Point::new(11.5884858, 48.1700887)]);
@@ -361,7 +409,19 @@ mod test {
 
     #[test]
     fn forward_full_test() {
-        let osm = Openstreetmap::new();
+        let mut server = mockito::Server::new();
+        let _m = mock_path(
+            &mut server,
+            "/search",
+            forward_body(
+                "UCL, 90 Tottenham Court Road, London",
+                -0.1361,
+                51.5215,
+                Some(json!({"city": "London"})),
+            ),
+        );
+
+        let osm = make_osm(&server);
         let viewbox = InputBounds::new(
             (-0.13806939125061035, 51.51989264641164),
             (-0.13427138328552246, 51.52319711775629),
@@ -378,7 +438,14 @@ mod test {
 
     #[test]
     fn forward_test() {
-        let osm = Openstreetmap::new();
+        let mut server = mockito::Server::new();
+        let _m = mock_path(
+            &mut server,
+            "/search",
+            forward_body("Schwabing, München, Germany", 11.5884858, 48.1700887, None),
+        );
+
+        let osm = make_osm(&server);
         let address = "Schwabing, München";
         let res = osm.forward(address);
         assert_eq!(res.unwrap(), vec![Point::new(11.5884858, 48.1700887)]);
@@ -386,7 +453,19 @@ mod test {
 
     #[test]
     fn reverse_test() {
-        let osm = Openstreetmap::new();
+        let mut server = mockito::Server::new();
+        let _m = mock_path(
+            &mut server,
+            "/reverse",
+            forward_body(
+                "Barcelona, Barcelonès, Barcelona, Catalunya, Spain",
+                2.12870,
+                41.40139,
+                None,
+            ),
+        );
+
+        let osm = make_osm(&server);
         let p = Point::new(2.12870, 41.40139);
         let res = osm.reverse(&p);
         assert!(res

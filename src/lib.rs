@@ -74,9 +74,15 @@ pub enum GeocodingError {
 ///
 /// ```
 /// use geocoding::{Opencage, Point, Reverse};
+/// # let mut server = mockito::Server::new();
+/// # let _m = server.mock("GET", mockito::Matcher::Any)
+/// #     .with_header("content-type", "application/json")
+/// #     .with_body(r#"{"documentation":"","licenses":[],"results":[{"components":{"road":"Carrer de Calatrava"},"confidence":10,"formatted":"Carrer de Calatrava, 64, 08017 Barcelona, Spain","geometry":{"lat":41.4014067,"lng":2.1287224}}],"status":{"message":"OK","code":200},"stay_informed":{},"thanks":"","timestamp":{"created_http":"","created_unix":0},"total_results":1}"#)
+/// #     .create();
 ///
 /// let p = Point::new(2.12870, 41.40139);
 /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+/// # let oc = Opencage::new_with_endpoint("dcdbf0d783374909b3debee728c7cc10".to_string(), format!("{}/geocode/v1/json", server.url()));
 /// let res = oc.reverse(&p).unwrap();
 /// assert_eq!(
 ///     res,
@@ -102,8 +108,14 @@ where
 ///
 /// ```
 /// use geocoding::{Coord, Forward, Opencage, Point};
+/// # let mut server = mockito::Server::new();
+/// # let _m = server.mock("GET", mockito::Matcher::Any)
+/// #     .with_header("content-type", "application/json")
+/// #     .with_body(r#"{"documentation":"","licenses":[],"results":[{"components":{"road":""},"confidence":10,"formatted":"Schwabing, Munich, Germany","geometry":{"lat":48.1700887,"lng":11.5884858}}],"status":{"message":"OK","code":200},"stay_informed":{},"thanks":"","timestamp":{"created_http":"","created_unix":0},"total_results":1}"#)
+/// #     .create();
 ///
 /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+/// # let oc = Opencage::new_with_endpoint("dcdbf0d783374909b3debee728c7cc10".to_string(), format!("{}/geocode/v1/json", server.url()));
 /// let address = "Schwabing, München";
 /// let res: Vec<Point<f64>> = oc.forward(address).unwrap();
 /// assert_eq!(
