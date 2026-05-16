@@ -448,10 +448,88 @@ pub struct ReverseLocationAttributes {
 #[cfg(test)]
 mod test {
     use super::*;
+    use mockito::{Matcher, ServerGuard};
+    use serde_json::json;
+
+    fn make_geoadmin(server: &ServerGuard) -> GeoAdmin {
+        GeoAdmin::new().with_endpoint(&format!("{}/", server.url()))
+    }
+
+    fn forward_body(x: f64, y: f64, lon: f64, lat: f64, label: &str) -> String {
+        json!({
+            "features": [{
+                "properties": {
+                    "origin": "address",
+                    "geom_quadindex": "021300220302203002031",
+                    "weight": 1512u32,
+                    "zoomlevel": 10u32,
+                    "lon": lon,
+                    "detail": "seftigenstrasse 264 3084 wabern",
+                    "rank": 7u32,
+                    "lat": lat,
+                    "num": 264usize,
+                    "x": x,
+                    "y": y,
+                    "label": label,
+                }
+            }]
+        })
+        .to_string()
+    }
+
+    fn reverse_body(strname_deinr: &str, dplz4: u32, dplzname: &str) -> String {
+        json!({
+            "results": [{
+                "featureId": "1272199_0",
+                "layerBodId": "ch.bfs.gebaeude_wohnungs_register",
+                "layerName": "Register of Buildings and Dwellings",
+                "properties": {
+                    "egid": null,
+                    "ggdenr": 351u32,
+                    "ggdename": "Köniz",
+                    "gdekt": "BE",
+                    "edid": null,
+                    "egaid": 0u32,
+                    "deinr": null,
+                    "dplz4": dplz4,
+                    "dplzname": dplzname,
+                    "egrid": null,
+                    "esid": 0u32,
+                    "strname": [],
+                    "strsp": [],
+                    "strname_deinr": strname_deinr,
+                    "label": strname_deinr,
+                }
+            }]
+        })
+        .to_string()
+    }
+
+    fn mock_path(server: &mut ServerGuard, path: &str, body: String) -> mockito::Mock {
+        server
+            .mock("GET", Matcher::Regex(format!("^{}.*", path)))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(body)
+            .create()
+    }
 
     #[test]
     fn new_with_sr_forward_test() {
-        let geoadmin = GeoAdmin::new().with_sr("2056");
+        let mut server = mockito::Server::new();
+        let _m = mock_path(
+            &mut server,
+            "/SearchServer",
+            forward_body(
+                1_197_427.0,
+                2_600_968.75,
+                7.451352119445801,
+                46.92793655395508,
+                "Seftigenstrasse 264 <b>3084 Wabern</b>",
+            ),
+        );
+
+        let geoadmin = make_geoadmin(&server).with_sr("2056");
         let address = "Seftigenstrasse 264, 3084 Wabern";
         let res = geoadmin.forward(address);
         assert_eq!(res.unwrap(), vec![Point::new(2_600_968.75, 1_197_427.0)]);
@@ -459,8 +537,20 @@ mod test {
 
     #[test]
     fn new_with_endpoint_forward_test() {
-        let geoadmin =
-            GeoAdmin::new().with_endpoint("https://api3.geo.admin.ch/rest/services/api/");
+        let mut server = mockito::Server::new();
+        let _m = mock_path(
+            &mut server,
+            "/SearchServer",
+            forward_body(
+                7.451352119445801,
+                46.92793655395508,
+                7.451352119445801,
+                46.92793655395508,
+                "Seftigenstrasse 264 <b>3084 Wabern</b>",
+            ),
+        );
+
+        let geoadmin = GeoAdmin::new().with_endpoint(&format!("{}/", server.url()));
         let address = "Seftigenstrasse 264, 3084 Wabern";
         let res = geoadmin.forward(address);
         assert_eq!(
@@ -471,7 +561,20 @@ mod test {
 
     #[test]
     fn with_sr_forward_full_test() {
-        let geoadmin = GeoAdmin::new().with_sr("2056");
+        let mut server = mockito::Server::new();
+        let _m = mock_path(
+            &mut server,
+            "/SearchServer",
+            forward_body(
+                1_197_427.0,
+                2_600_968.75,
+                7.451352119445801,
+                46.92793655395508,
+                "Seftigenstrasse 264 <b>3084 Wabern</b>",
+            ),
+        );
+
+        let geoadmin = make_geoadmin(&server).with_sr("2056");
         let bbox = InputBounds::new((2_600_967.75, 1_197_426.0), (2_600_969.75, 1_197_428.0));
         let params = GeoAdminParams::new("Seftigenstrasse Bern")
             .with_origins("address")
@@ -487,7 +590,20 @@ mod test {
 
     #[test]
     fn forward_full_test() {
-        let geoadmin = GeoAdmin::new();
+        let mut server = mockito::Server::new();
+        let _m = mock_path(
+            &mut server,
+            "/SearchServer",
+            forward_body(
+                7.451352119445801,
+                46.92793655395508,
+                7.451352119445801,
+                46.92793655395508,
+                "Seftigenstrasse 264 <b>3084 Wabern</b>",
+            ),
+        );
+
+        let geoadmin = make_geoadmin(&server);
         let bbox = InputBounds::new((7.4513398, 46.92792859), (7.4513662, 46.9279467));
         let params = GeoAdminParams::new("Seftigenstrasse Bern")
             .with_origins("address")
@@ -503,7 +619,20 @@ mod test {
 
     #[test]
     fn forward_test() {
-        let geoadmin = GeoAdmin::new();
+        let mut server = mockito::Server::new();
+        let _m = mock_path(
+            &mut server,
+            "/SearchServer",
+            forward_body(
+                7.451352119445801,
+                46.92793655395508,
+                7.451352119445801,
+                46.92793655395508,
+                "Seftigenstrasse 264 <b>3084 Wabern</b>",
+            ),
+        );
+
+        let geoadmin = make_geoadmin(&server);
         let address = "Seftigenstrasse 264, 3084 Wabern";
         let res = geoadmin.forward(address);
         assert_eq!(
@@ -514,7 +643,14 @@ mod test {
 
     #[test]
     fn with_sr_reverse_test() {
-        let geoadmin = GeoAdmin::new().with_sr("2056");
+        let mut server = mockito::Server::new();
+        let _m = mock_path(
+            &mut server,
+            "/MapServer/identify",
+            reverse_body("Seftigenstrasse 264", 3084, "Wabern"),
+        );
+
+        let geoadmin = make_geoadmin(&server).with_sr("2056");
         let p = Point::new(2_600_968.75, 1_197_427.0);
         let res = geoadmin.reverse(&p);
         assert_eq!(
@@ -524,9 +660,15 @@ mod test {
     }
 
     #[test]
-    #[ignore = "https://github.com/georust/geocoding/pull/45#issuecomment-1592395700"]
     fn reverse_test() {
-        let geoadmin = GeoAdmin::new();
+        let mut server = mockito::Server::new();
+        let _m = mock_path(
+            &mut server,
+            "/MapServer/identify",
+            reverse_body("Seftigenstrasse 264", 3084, "Wabern"),
+        );
+
+        let geoadmin = make_geoadmin(&server);
         let p = Point::new(7.451352119445801, 46.92793655395508);
         let res = geoadmin.reverse(&p);
         assert_eq!(
