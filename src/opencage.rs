@@ -16,8 +16,14 @@
 //!
 //! ```
 //! use geocoding::{Opencage, Point, Reverse};
+//! # let mut server = mockito::Server::new();
+//! # let _m = server.mock("GET", mockito::Matcher::Any)
+//! #     .with_header("content-type", "application/json")
+//! #     .with_body(r#"{"documentation":"","licenses":[],"results":[{"components":{"road":"Carrer de Calatrava"},"confidence":10,"formatted":"Carrer de Calatrava, 64, 08017 Barcelone, Espagne","geometry":{"lat":41.4014067,"lng":2.1287224}}],"status":{"message":"OK","code":200},"stay_informed":{},"thanks":"","timestamp":{"created_http":"","created_unix":0},"total_results":1}"#)
+//! #     .create();
 //!
 //! let mut oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+//! # let mut oc = Opencage::new_with_endpoint("dcdbf0d783374909b3debee728c7cc10".to_string(), format!("{}/geocode/v1/json", server.url()));
 //! oc.parameters.language = Some("fr");
 //! let p = Point::new(2.12870, 41.40139);
 //! let res = oc.reverse(&p);
@@ -141,8 +147,14 @@ impl Opencage<'_> {
     ///
     ///```
     /// use geocoding::{Opencage, Point};
+    /// # let mut server = mockito::Server::new();
+    /// # let _m = server.mock("GET", mockito::Matcher::Any)
+    /// #     .with_header("content-type", "application/json")
+    /// #     .with_body(r#"{"documentation":"","licenses":[],"results":[{"components":{"road":"Carrer de Calatrava"},"confidence":10,"formatted":"Carrer de Calatrava, 64, 08017 Barcelona, Spain","geometry":{"lat":41.4014067,"lng":2.1287224}}],"status":{"message":"OK","code":200},"stay_informed":{},"thanks":"","timestamp":{"created_http":"","created_unix":0},"total_results":1}"#)
+    /// #     .create();
     ///
     /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+    /// # let oc = Opencage::new_with_endpoint("dcdbf0d783374909b3debee728c7cc10".to_string(), format!("{}/geocode/v1/json", server.url()));
     /// let p = Point::new(2.12870, 41.40139);
     /// // a full `OpencageResponse` struct
     /// let res = oc.reverse_full(&p).unwrap();
@@ -206,8 +218,14 @@ impl Opencage<'_> {
     ///
     ///```
     /// use geocoding::{Opencage, InputBounds, Point};
+    /// # let mut server = mockito::Server::new();
+    /// # let _m = server.mock("GET", mockito::Matcher::Any)
+    /// #     .with_header("content-type", "application/json")
+    /// #     .with_body(r#"{"documentation":"","licenses":[],"results":[{"components":{"road":"Tottenham Court Road"},"confidence":10,"formatted":"UCL, 90 Tottenham Court Road, London","geometry":{"lat":51.5215,"lng":-0.1361}}],"status":{"message":"OK","code":200},"stay_informed":{},"thanks":"","timestamp":{"created_http":"","created_unix":0},"total_results":1}"#)
+    /// #     .create();
     ///
     /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+    /// # let oc = Opencage::new_with_endpoint("dcdbf0d783374909b3debee728c7cc10".to_string(), format!("{}/geocode/v1/json", server.url()));
     /// let address = "UCL Centre for Advanced Spatial Analysis";
     /// // Optionally restrict the search space using a bounding box.
     /// // The first point is the bottom-left corner, the second is the top-right.
@@ -225,7 +243,13 @@ impl Opencage<'_> {
     /// // You can pass NOBOX if you don't need bounds.
     /// use geocoding::{Opencage, InputBounds, Point};
     /// use geocoding::opencage::{NOBOX};
+    /// # let mut server = mockito::Server::new();
+    /// # let _m = server.mock("GET", mockito::Matcher::Any)
+    /// #     .with_header("content-type", "application/json")
+    /// #     .with_body(r#"{"documentation":"","licenses":[],"results":[{"components":{"road":""},"confidence":10,"formatted":"Moabit, Berlin, Germany","geometry":{"lat":52.53,"lng":13.34}}],"status":{"message":"OK","code":200},"stay_informed":{},"thanks":"","timestamp":{"created_http":"","created_unix":0},"total_results":1}"#)
+    /// #     .create();
     /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+    /// # let oc = Opencage::new_with_endpoint("dcdbf0d783374909b3debee728c7cc10".to_string(), format!("{}/geocode/v1/json", server.url()));
     /// let address = "Moabit, Berlin";
     /// let res = oc.forward_full(&address, NOBOX).unwrap();
     /// let first_result = &res.results[0];
@@ -238,7 +262,13 @@ impl Opencage<'_> {
     /// ```
     /// // There are several ways to construct a Point, such as from a tuple
     /// use geocoding::{Opencage, InputBounds, Point};
+    /// # let mut server = mockito::Server::new();
+    /// # let _m = server.mock("GET", mockito::Matcher::Any)
+    /// #     .with_header("content-type", "application/json")
+    /// #     .with_body(r#"{"documentation":"","licenses":[],"results":[{"components":{"road":"Tottenham Court Road"},"confidence":10,"formatted":"UCL, 90 Tottenham Court Road, London","geometry":{"lat":51.5215,"lng":-0.1361}}],"status":{"message":"OK","code":200},"stay_informed":{},"thanks":"","timestamp":{"created_http":"","created_unix":0},"total_results":1}"#)
+    /// #     .create();
     /// let oc = Opencage::new("dcdbf0d783374909b3debee728c7cc10".to_string());
+    /// # let oc = Opencage::new_with_endpoint("dcdbf0d783374909b3debee728c7cc10".to_string(), format!("{}/geocode/v1/json", server.url()));
     /// let address = "UCL Centre for Advanced Spatial Analysis";
     /// let bbox = InputBounds::new(
     ///     (-0.13806939125061035, 51.51989264641164),
